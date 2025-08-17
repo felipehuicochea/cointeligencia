@@ -1,0 +1,165 @@
+export const es = {
+  // Navigation
+  dashboard: 'Panel de Control',
+  settings: 'Configuración',
+  
+  // Authentication
+  login: {
+    title: 'Cointeligencia',
+    subtitle: 'Sistema de Alertas de Trading',
+    emailLabel: 'Correo Electrónico',
+    emailPlaceholder: 'Ingresa tu correo de suscripción',
+    accessButton: 'Acceder a la App',
+    helpText1: 'Ingresa la dirección de correo asociada a tu suscripción Pro para acceder a la app móvil.',
+    helpText2: 'Los suscriptores básicos pueden acceder a las alertas solo por Telegram.',
+    errorInvalidEmail: 'Por favor ingresa una dirección de correo válida',
+    errorRequiredEmail: 'Por favor ingresa tu dirección de correo',
+    errorLoginFailed: 'Error de inicio de sesión',
+  },
+
+  // Dashboard
+  dashboard: {
+    tradingMode: 'Modo de Trading',
+    autoModeDescription: 'Ejecutar automáticamente trades basados en alertas',
+    manualModeDescription: 'Revisar y aprobar trades manualmente',
+    recentAlerts: 'Alertas Recientes',
+    noAlerts: 'No se han recibido alertas aún. Las alertas de trading aparecerán aquí cuando sean recibidas.',
+    alertsCount: '{count} de {total} total',
+    tradingSummary: 'Resumen de Trading',
+    executed: 'Ejecutados',
+    ignored: 'Ignorados',
+    failed: 'Fallidos',
+    pending: 'Pendientes',
+    executeNow: 'Ejecutar Ahora',
+    execute: 'Ejecutar',
+    ignore: 'Ignorar',
+    executedAt: 'Ejecutado: ${price}',
+    executedTime: 'en {time}',
+    error: 'Error: {message}',
+  },
+
+  // Settings
+  settings: {
+    accountInformation: 'Información de Cuenta',
+    email: 'Correo: {email}',
+    licenseType: 'Tipo de Licencia: {type}',
+    expires: 'Expira: {date}',
+    appAccess: 'Acceso a App: {status}',
+    telegram: 'Telegram: @{alias}',
+    
+    tradingMode: 'Modo de Trading',
+    autoModeDescription: 'Ejecutar automáticamente trades basados en alertas',
+    manualModeDescription: 'Revisar y aprobar trades manualmente',
+    
+    exchangeConfiguration: 'Configuración de Exchange',
+    exchangeDescription: 'Configura tus credenciales API de exchange para habilitar el trading automatizado.',
+    addExchange: 'Agregar Exchange',
+    noCredentials: 'No hay credenciales de exchange configuradas',
+    noCredentialsSubtext: 'Agrega tu primer exchange para comenzar el trading automatizado',
+    active: 'ACTIVO',
+    inactive: 'INACTIVO',
+    apiKey: 'Clave API: {key}...{end}',
+    added: 'Agregado: {date}',
+    remove: 'Eliminar',
+    removeConfirmTitle: 'Eliminar Credenciales',
+    removeConfirmMessage: '¿Estás seguro de que quieres eliminar estas credenciales API?',
+    removeSuccess: 'Credenciales eliminadas exitosamente',
+    addSuccess: 'Credenciales API agregadas exitosamente',
+    
+    riskManagement: 'Gestión de Riesgo',
+    riskDescription: 'Configura tus parámetros de riesgo para el trading automatizado.',
+    orderSize: 'Tamaño de Orden',
+    configure: 'Configurar',
+    percentageOfBalance: '{value}% del Balance',
+    fixedAmount: '${value}',
+    percentage: 'PORCENTAJE',
+    fixed: 'FIJO',
+    maxPositionSize: 'Tamaño Máximo de Posición',
+    stopLossPercentage: 'Porcentaje de Stop Loss',
+    riskLevel: 'Nivel de Riesgo',
+    
+    appSettings: 'Configuración de la App',
+    pushNotifications: 'Notificaciones Push',
+    pushDescription: 'Recibir alertas de trading',
+    soundAlerts: 'Alertas de Sonido',
+    soundDescription: 'Reproducir sonido para notificaciones',
+    
+    language: 'Idioma',
+    languageDescription: 'Selecciona el idioma de la aplicación',
+    spanish: 'Español',
+    english: 'Inglés',
+    
+    logout: 'Cerrar Sesión',
+    logoutConfirmTitle: 'Cerrar Sesión',
+    logoutConfirmMessage: '¿Estás seguro de que quieres cerrar sesión?',
+  },
+
+  // Exchange Dialog
+  exchangeDialog: {
+    title: 'Agregar Credenciales de Exchange',
+    exchange: 'Exchange',
+    selectExchange: 'Seleccionar Exchange',
+    apiKey: 'Clave API',
+    apiKeyPlaceholder: 'Ingresa tu clave API',
+    apiSecret: 'Secreto API',
+    apiSecretPlaceholder: 'Ingresa tu secreto API',
+    passphrase: 'Frase de Paso (opcional)',
+    passphrasePlaceholder: 'Requerido para algunos exchanges como Coinbase Pro',
+    cancel: 'Cancelar',
+    add: 'Agregar',
+    fillAllFields: 'Por favor completa todos los campos requeridos',
+  },
+
+  // Order Size Dialog
+  orderSizeDialog: {
+    title: 'Configurar Tamaño de Orden',
+    orderSizeType: 'Tipo de Tamaño de Orden',
+    percentageOfBalance: 'Porcentaje del Balance',
+    fixedAmount: 'Cantidad Fija (USD)',
+    percentage: 'Porcentaje (%)',
+    percentagePlaceholder: 'Ingresa porcentaje (0-100)',
+    fixedAmountLabel: 'Cantidad Fija ($)',
+    fixedAmountPlaceholder: 'Ingresa cantidad en USD',
+    percentageDescription: 'Este porcentaje de tu balance disponible será usado para cada trade.',
+    fixedDescription: 'Esta cantidad fija en USD será usada para cada trade.',
+    done: 'Listo',
+  },
+
+  // Common
+  common: {
+    yes: 'Sí',
+    no: 'No',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+    save: 'Guardar',
+    delete: 'Eliminar',
+    edit: 'Editar',
+    close: 'Cerrar',
+    loading: 'Cargando...',
+    error: 'Error',
+    success: 'Éxito',
+    warning: 'Advertencia',
+    info: 'Información',
+  },
+
+  // Trading Status
+  trading: {
+    buy: 'COMPRAR',
+    sell: 'VENDER',
+    pending: 'PENDIENTE',
+    executed: 'EJECUTADO',
+    ignored: 'IGNORADO',
+    failed: 'FALLIDO',
+  },
+
+  // Supported Exchanges
+  exchanges: {
+    binance: 'Binance',
+    kraken: 'Kraken',
+    mexc: 'Mexc',
+    kucoin: 'KuCoin',
+    bingx: 'BingX',
+    bybit: 'Bybit',
+    coinex: 'CoinEx',
+  },
+};

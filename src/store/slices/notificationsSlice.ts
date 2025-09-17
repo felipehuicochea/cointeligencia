@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { notificationService } from '../../services/notificationService';
+import { firebaseNotificationService } from '../../services/firebaseNotificationService';
 
 interface NotificationsState {
   token: string | null;
@@ -22,7 +22,7 @@ export const registerForPushNotifications = createAsyncThunk(
   'notifications/register',
   async (_, { rejectWithValue }) => {
     try {
-      const token = await notificationService.registerForPushNotifications();
+      const token = await firebaseNotificationService.registerForPushNotifications();
       return token;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to register for notifications');
@@ -40,7 +40,7 @@ export const testToken = createAsyncThunk(
         throw new Error('No notification token available');
       }
       
-      const result = await notificationService.testTokenWithExpo(token);
+      const result = await firebaseNotificationService.validateToken(token);
       return result;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to test token');
@@ -52,7 +52,7 @@ export const refreshPushToken = createAsyncThunk(
   'notifications/refreshToken',
   async (_, { rejectWithValue }) => {
     try {
-      const token = await notificationService.refreshPushToken();
+      const token = await firebaseNotificationService.refreshPushToken();
       return token;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to refresh push token');
@@ -71,12 +71,12 @@ export const sendTestNotification = createAsyncThunk(
       }
       
       // Validate token before sending
-      const isValid = await notificationService.validateToken(token);
+      const isValid = await firebaseNotificationService.validateToken(token);
       if (!isValid) {
         throw new Error('Invalid notification token. Please refresh the token.');
       }
       
-      await notificationService.sendTestNotification(token);
+      await firebaseNotificationService.sendTestNotification(token);
       return true;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to send test notification');

@@ -38,6 +38,7 @@ export interface TradingConfig {
   riskLevel: 'low' | 'medium' | 'high';
   maxPositionSize: number;
   stopLossPercentage: number;
+  takeProfitPercentage: number;
   orderSizeType: 'percentage' | 'fixed';
   orderSizeValue: number; // percentage (0-100) or fixed amount in USD
 }
@@ -91,6 +92,7 @@ export interface ApiResponse<T> {
 export interface LoginResponse {
   status: string;
   data: User;
+  token?: string;
   message?: string;
 }
 

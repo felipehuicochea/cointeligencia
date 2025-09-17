@@ -9,7 +9,8 @@ const initialState = {
     defaultExchange: null,
     riskLevel: 'medium' as const,
     maxPositionSize: 1000,
-    stopLossPercentage: 5,
+    stopLossPercentage: 5.3,
+    takeProfitPercentage: 77,
     orderSizeType: 'percentage' as const,
     orderSizeValue: 100, // 100% of balance by default
   } as TradingConfig,
@@ -150,6 +151,15 @@ const tradingSlice = createSlice({
     setOrderSizeValue: (state, action: PayloadAction<number>) => {
       state.config.orderSizeValue = action.payload;
     },
+    setMaxPositionSize: (state, action: PayloadAction<number>) => {
+      state.config.maxPositionSize = action.payload;
+    },
+    setStopLossPercentage: (state, action: PayloadAction<number>) => {
+      state.config.stopLossPercentage = action.payload;
+    },
+    setTakeProfitPercentage: (state, action: PayloadAction<number>) => {
+      state.config.takeProfitPercentage = action.payload;
+    },
     removeCredentials: (state, action: PayloadAction<string>) => {
       state.credentials = state.credentials.filter(c => c.id !== action.payload);
     },
@@ -221,6 +231,10 @@ const tradingSlice = createSlice({
           alert.status = 'ignored';
         }
       })
+      .addCase(ignoreTrade.rejected, (state, action) => {
+        // Handle ignore trade failure
+        console.error('Failed to ignore trade:', action.payload);
+      })
       // Process Trade Alert
       .addCase(processTradeAlert.pending, (state, action) => {
         const alert = state.history.alerts.find(a => a.id === action.meta.arg.alert.id);
@@ -257,6 +271,9 @@ export const {
   setTradingMode, 
   setOrderSizeType, 
   setOrderSizeValue, 
+  setMaxPositionSize,
+  setStopLossPercentage,
+  setTakeProfitPercentage,
   removeCredentials 
 } = tradingSlice.actions;
 

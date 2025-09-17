@@ -22,7 +22,7 @@ import {
 } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { updateTradingConfig, saveCredentials, removeCredentials, setTradingMode, setOrderSizeType, setOrderSizeValue, validateCredentials } from '../store/slices/tradingSlice';
+import { updateTradingConfig, saveCredentials, removeCredentials, setTradingMode, setOrderSizeType, setOrderSizeValue, setMaxPositionSize, setStopLossPercentage, setTakeProfitPercentage, validateCredentials } from '../store/slices/tradingSlice';
 import { logoutUser } from '../store/slices/authSlice';
 import { changeLanguage } from '../store/slices/languageSlice';
 import { TradingMode, ExchangeCredentials } from '../types';
@@ -50,6 +50,9 @@ const SettingsScreen: React.FC = () => {
   const [showCredentialDialog, setShowCredentialDialog] = useState(false);
   const [showExchangeMenu, setShowExchangeMenu] = useState(false);
   const [showOrderSizeDialog, setShowOrderSizeDialog] = useState(false);
+  const [showMaxPositionDialog, setShowMaxPositionDialog] = useState(false);
+  const [showStopLossDialog, setShowStopLossDialog] = useState(false);
+  const [showTakeProfitDialog, setShowTakeProfitDialog] = useState(false);
   const [newCredential, setNewCredential] = useState({
     exchange: '',
     apiKey: '',
@@ -57,6 +60,9 @@ const SettingsScreen: React.FC = () => {
     passphrase: '',
   });
   const [isTestingCredentials, setIsTestingCredentials] = useState(false);
+  const [soundAlertsEnabled, setSoundAlertsEnabled] = useState(true); // Default to enabled
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true); // Default to enabled
+  const [vibrationEnabled, setVibrationEnabled] = useState(true); // Default to enabled
 
   const handleModeToggle = () => {
     const newMode: TradingMode = config.mode === 'AUTO' ? 'MANUAL' : 'AUTO';
@@ -84,6 +90,24 @@ const SettingsScreen: React.FC = () => {
       const clampedValue = Math.max(0, numValue);
       dispatch(setOrderSizeValue(clampedValue));
     }
+  };
+
+  const handleMaxPositionSizeChange = (value: string) => {
+    const numValue = parseFloat(value) || 0;
+    const clampedValue = Math.max(0, numValue);
+    dispatch(setMaxPositionSize(clampedValue));
+  };
+
+  const handleStopLossPercentageChange = (value: string) => {
+    const numValue = parseFloat(value) || 0;
+    const clampedValue = Math.max(0, Math.min(100, numValue));
+    dispatch(setStopLossPercentage(clampedValue));
+  };
+
+  const handleTakeProfitPercentageChange = (value: string) => {
+    const numValue = parseFloat(value) || 0;
+    const clampedValue = Math.max(0, Math.min(100, numValue));
+    dispatch(setTakeProfitPercentage(clampedValue));
   };
 
   const handleAddCredential = async () => {
@@ -249,10 +273,6 @@ const SettingsScreen: React.FC = () => {
           <Paragraph>{settings('email', { email: user?.email })}</Paragraph>
           <Paragraph>{settings('licenseType', { type: user?.licenseType })}</Paragraph>
           <Paragraph>{settings('expires', { date: user?.expirationDate ? new Date(user.expirationDate).toLocaleDateString() : 'N/A' })}</Paragraph>
-          <Paragraph>{settings('appAccess', { status: user?.isAppUser ? t('common.yes') : t('common.no') })}</Paragraph>
-          {user?.telegramAlias && (
-            <Paragraph>{settings('telegram', { alias: user.telegramAlias })}</Paragraph>
-          )}
         </Card.Content>
       </Card>
 
@@ -261,11 +281,11 @@ const SettingsScreen: React.FC = () => {
         <Card.Content>
           <View style={styles.modeContainer}>
             <View style={styles.modeTextContainer}>
-              <Title>Trading Mode</Title>
+              <Title>{t('settings.tradingMode')}</Title>
               <Paragraph>
                 {config.mode === 'AUTO' 
-                  ? 'Automatically execute trades based on alerts' 
-                  : 'Manually review and approve trades'
+                  ? t('settings.autoModeDescription')
+                  : t('settings.manualModeDescription')
                 }
               </Paragraph>
             </View>
@@ -297,9 +317,9 @@ const SettingsScreen: React.FC = () => {
       {/* Exchange Configuration */}
       <Card style={styles.card}>
         <Card.Content>
-          <Title>Exchange Configuration</Title>
+          <Title>{t('settings.exchangeConfiguration')}</Title>
           <Paragraph style={styles.description}>
-            Configure your exchange API credentials to enable automated trading.
+            {t('settings.exchangeDescription')}
           </Paragraph>
           
           <Button
@@ -308,16 +328,16 @@ const SettingsScreen: React.FC = () => {
             icon="plus"
             style={styles.addButton}
             buttonColor={colors.secondary}
-            textColor={colors.text}
+            textColor="#FFFFFF"
           >
-                            Add exchange
+            {t('settings.addExchange')}
           </Button>
           
           {credentials.length === 0 ? (
             <View style={styles.noCredentialsContainer}>
-              <Text style={styles.noDataText}>No exchange credentials configured</Text>
+              <Text style={styles.noDataText}>{t('settings.noCredentials')}</Text>
               <Text style={styles.noDataSubtext}>
-                Add your first exchange to start automated trading
+                {t('settings.noCredentialsSubtext')}
               </Text>
             </View>
           ) : (
@@ -340,14 +360,14 @@ const SettingsScreen: React.FC = () => {
                         fontSize: 10
                       }}
                     >
-                      {credential.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      {credential.isActive ? t('settings.active') : t('settings.inactive')}
                     </Chip>
                   </View>
                   <Text style={styles.credentialDetails}>
-                    API Key: {credential.apiKey.substring(0, 8)}...{credential.apiKey.substring(credential.apiKey.length - 4)}
+                    {t('settings.apiKey', { key: credential.apiKey.substring(0, 8), end: credential.apiKey.substring(credential.apiKey.length - 4) })}
                   </Text>
                   <Text style={styles.credentialDate}>
-                    Added: {new Date(credential.createdAt).toLocaleDateString()}
+                    {t('settings.added', { date: new Date(credential.createdAt).toLocaleDateString() })}
                   </Text>
                 </View>
                 <View style={styles.credentialActions}>
@@ -360,15 +380,15 @@ const SettingsScreen: React.FC = () => {
                   >
                     Test
                   </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={() => handleRemoveCredential(credential.id)}
-                    style={styles.removeButton}
-                    textColor={colors.error}
-                    compact
-                  >
-                    Remove
-                  </Button>
+                                      <Button
+                      mode="outlined"
+                      onPress={() => handleRemoveCredential(credential.id)}
+                      style={styles.removeButton}
+                      textColor={colors.error}
+                      compact
+                    >
+                      {t('settings.remove')}
+                    </Button>
                 </View>
               </View>
             ))
@@ -379,22 +399,22 @@ const SettingsScreen: React.FC = () => {
       {/* Risk Management */}
       <Card style={styles.card}>
         <Card.Content>
-          <Title>Risk Management</Title>
+          <Title>{t('settings.riskManagement')}</Title>
           <Paragraph style={styles.description}>
-            Configure your risk parameters for automated trading.
+            {t('settings.riskDescription')}
           </Paragraph>
           
           {/* Order Size Configuration */}
-          <Title style={styles.sectionTitle}>Order size</Title>
+          <Title style={styles.sectionTitle}>{t('settings.orderSize')}</Title>
           <Button
             mode="outlined"
             onPress={() => setShowOrderSizeDialog(true)}
             icon="pencil"
             style={styles.configureButton}
-            textColor={colors.text}
+            textColor={colors.textSecondary}
             buttonColor="transparent"
           >
-            Configure
+            {t('settings.configure')}
           </Button>
           <View style={styles.orderSizeDisplay}>
             <Text style={styles.orderSizeText}>
@@ -413,19 +433,106 @@ const SettingsScreen: React.FC = () => {
           </View>
           
           <List.Item
-                          title="Maximum position size"
+            title="Maximum position size"
             description={`$${config.maxPositionSize.toLocaleString()}`}
             left={(props) => <List.Icon {...props} icon="currency-usd" />}
+            right={() => (
+              <Button
+                mode="outlined"
+                onPress={() => setShowMaxPositionDialog(true)}
+                icon="pencil"
+                compact
+                textColor={colors.textSecondary}
+              >
+                Configure
+              </Button>
+            )}
           />
           <List.Item
-                          title="Stop loss percentage"
+            title="Stop loss percentage"
             description={`${config.stopLossPercentage}%`}
             left={(props) => <List.Icon {...props} icon="alert" />}
+            right={() => (
+              <Button
+                mode="outlined"
+                onPress={() => setShowStopLossDialog(true)}
+                icon="pencil"
+                compact
+                textColor={colors.textSecondary}
+              >
+                Configure
+              </Button>
+            )}
           />
           <List.Item
-                          title="Risk level"
+            title="Take profit percentage"
+            description={`${config.takeProfitPercentage}%`}
+            left={(props) => <List.Icon {...props} icon="trending-up" />}
+            right={() => (
+              <Button
+                mode="outlined"
+                onPress={() => setShowTakeProfitDialog(true)}
+                icon="pencil"
+                compact
+                textColor={colors.textSecondary}
+              >
+                Configure
+              </Button>
+            )}
+          />
+          <List.Item
+            title="Risk level"
             description={config.riskLevel}
             left={(props) => <List.Icon {...props} icon="shield" />}
+          />
+        </Card.Content>
+      </Card>
+
+      {/* Notification Settings */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>Notification Settings</Title>
+          <Paragraph style={styles.description}>
+            Configure how you receive trading alerts and notifications.
+          </Paragraph>
+          
+          <List.Item
+            title="Push Notifications"
+            description="Receive trading alerts on your device"
+            left={(props) => <List.Icon {...props} icon="bell" />}
+            right={() => (
+              <Switch 
+                value={pushNotificationsEnabled} 
+                onValueChange={setPushNotificationsEnabled}
+                color={colors.secondary}
+              />
+            )}
+          />
+          
+          <List.Item
+            title="Sound Alerts"
+            description="Play sound when receiving notifications"
+            left={(props) => <List.Icon {...props} icon="volume-high" />}
+            right={() => (
+              <Switch 
+                value={soundAlertsEnabled} 
+                onValueChange={setSoundAlertsEnabled}
+                color={colors.secondary}
+              />
+            )}
+          />
+          
+          <List.Item
+            title="Vibration"
+            description="Vibrate when receiving notifications"
+            left={(props) => <List.Icon {...props} icon="vibrate" />}
+            right={() => (
+              <Switch 
+                value={vibrationEnabled} 
+                onValueChange={setVibrationEnabled}
+                color={colors.secondary}
+              />
+            )}
           />
         </Card.Content>
       </Card>
@@ -434,18 +541,9 @@ const SettingsScreen: React.FC = () => {
       <Card style={styles.card}>
         <Card.Content>
           <Title>{settings('appSettings')}</Title>
-          <List.Item
-            title={settings('pushNotifications')}
-            description={settings('pushDescription')}
-            left={(props) => <List.Icon {...props} icon="bell" />}
-            right={() => <Switch value={true} disabled />}
-          />
-          <List.Item
-            title={settings('soundAlerts')}
-            description={settings('soundDescription')}
-            left={(props) => <List.Icon {...props} icon="volume-high" />}
-            right={() => <Switch value={true} disabled />}
-          />
+          <Paragraph style={styles.description}>
+            General application settings and preferences.
+          </Paragraph>
         </Card.Content>
       </Card>
 
@@ -465,7 +563,7 @@ const SettingsScreen: React.FC = () => {
                 onPress={() => handleLanguageChange(lang.code)}
                 style={styles.languageButton}
                 buttonColor={currentLanguage === lang.code ? colors.secondary : 'transparent'}
-                textColor={currentLanguage === lang.code ? colors.text : colors.textSecondary}
+                textColor={currentLanguage === lang.code ? '#FFFFFF' : colors.textSecondary}
               >
                 {lang.name}
               </Button>
@@ -503,6 +601,7 @@ const SettingsScreen: React.FC = () => {
                   onPress={() => setShowExchangeMenu(true)}
                   style={styles.exchangeButton}
                   contentStyle={styles.exchangeButtonContent}
+                  textColor={colors.textSecondary}
                 >
                   {newCredential.exchange || 'Select exchange'}
                 </Button>
@@ -584,6 +683,8 @@ const SettingsScreen: React.FC = () => {
                 mode={config.orderSizeType === 'percentage' ? 'contained' : 'outlined'}
                 onPress={() => handleOrderSizeTypeChange('percentage')}
                 style={styles.orderSizeTypeButton}
+                buttonColor={config.orderSizeType === 'percentage' ? colors.secondary : 'transparent'}
+                textColor={config.orderSizeType === 'percentage' ? '#FFFFFF' : colors.textSecondary}
               >
                 Percentage of balance
               </Button>
@@ -591,6 +692,8 @@ const SettingsScreen: React.FC = () => {
                 mode={config.orderSizeType === 'fixed' ? 'contained' : 'outlined'}
                 onPress={() => handleOrderSizeTypeChange('fixed')}
                 style={styles.orderSizeTypeButton}
+                buttonColor={config.orderSizeType === 'fixed' ? colors.secondary : 'transparent'}
+                textColor={config.orderSizeType === 'fixed' ? '#FFFFFF' : colors.textSecondary}
               >
                 Fixed amount (USD)
               </Button>
@@ -617,6 +720,78 @@ const SettingsScreen: React.FC = () => {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowOrderSizeDialog(false)}>Done</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Maximum Position Size Configuration Dialog */}
+      <Portal>
+        <Dialog visible={showMaxPositionDialog} onDismiss={() => setShowMaxPositionDialog(false)}>
+          <Dialog.Title>Configure maximum position size</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogLabel}>Maximum position size ($)</Text>
+            <TextInput
+              value={config.maxPositionSize.toString()}
+              onChangeText={handleMaxPositionSizeChange}
+              mode="outlined"
+              style={styles.dialogInput}
+              keyboardType="numeric"
+              placeholder="Enter maximum position size in USD"
+            />
+            <Text style={styles.dialogDescription}>
+              This is the maximum amount you're willing to risk on a single trade.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowMaxPositionDialog(false)}>Done</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Stop Loss Configuration Dialog */}
+      <Portal>
+        <Dialog visible={showStopLossDialog} onDismiss={() => setShowStopLossDialog(false)}>
+          <Dialog.Title>Configure stop loss percentage</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogLabel}>Stop loss percentage (%)</Text>
+            <TextInput
+              value={config.stopLossPercentage.toString()}
+              onChangeText={handleStopLossPercentageChange}
+              mode="outlined"
+              style={styles.dialogInput}
+              keyboardType="numeric"
+              placeholder="Enter stop loss percentage (0-100)"
+            />
+            <Text style={styles.dialogDescription}>
+              This percentage represents how much you're willing to lose on a trade before automatically closing the position.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowStopLossDialog(false)}>Done</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Take Profit Configuration Dialog */}
+      <Portal>
+        <Dialog visible={showTakeProfitDialog} onDismiss={() => setShowTakeProfitDialog(false)}>
+          <Dialog.Title>Configure take profit percentage</Dialog.Title>
+          <Dialog.Content>
+            <Text style={styles.dialogLabel}>Take profit percentage (%)</Text>
+            <TextInput
+              value={config.takeProfitPercentage.toString()}
+              onChangeText={handleTakeProfitPercentageChange}
+              mode="outlined"
+              style={styles.dialogInput}
+              keyboardType="numeric"
+              placeholder="Enter take profit percentage (0-100)"
+            />
+            <Text style={styles.dialogDescription}>
+              This percentage represents your profit target before automatically closing the position.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowTakeProfitDialog(false)}>Done</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

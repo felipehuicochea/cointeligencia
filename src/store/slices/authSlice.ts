@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthState, User, LoginResponse, RegisterDeviceResponse } from '../../types';
 import { authService } from '../../services/authService';
+import { secureStorageService } from '../../services/secureStorageService';
 
 const initialState: AuthState = {
   user: null,
@@ -12,9 +13,24 @@ const initialState: AuthState = {
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; deviceId: string }, { rejectWithValue }) => {
+  async (credentials: { email: string; deviceId: string; fcmToken?: string }, { rejectWithValue }) => {
     try {
       const response = await authService.login(credentials);
+      
+      // Store session data securely
+      if (response.data) {
+        await secureStorageService.storeUserData(response.data);
+      }
+      if (credentials.email) {
+        await secureStorageService.storeUserEmail(credentials.email);
+      }
+      if (credentials.deviceId) {
+        await secureStorageService.storeDeviceId(credentials.deviceId);
+      }
+      
+      // Store login timestamp
+      await secureStorageService.storeLoginTimestamp();
+      
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Login failed');
@@ -51,9 +67,74 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
+      
+      // Clear stored session data
+      await secureStorageService.clearAuthData();
+      
       return true;
     } catch (error: any) {
+      // Even if logout fails on server, clear local data
+      try {
+        await secureStorageService.clearAuthData();
+      } catch (clearError) {
+        console.error('Failed to clear local auth data:', clearError);
+      }
       return rejectWithValue(error.message || 'Logout failed');
+    }
+  }
+);
+
+export const restoreSession = createAsyncThunk(
+  'auth/restoreSession',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Check if we have stored session data
+      const hasStoredSession = await secureStorageService.hasStoredSession();
+      if (!hasStoredSession) {
+        return { user: null, isAuthenticated: false };
+      }
+
+      // Get stored user data
+      const userData = await secureStorageService.getUserData();
+      const email = await secureStorageService.getUserEmail();
+      const deviceId = await secureStorageService.getDeviceId();
+      
+      if (!userData || !email || !deviceId) {
+        // Clear invalid session data
+        await secureStorageService.clearAuthData();
+        return { user: null, isAuthenticated: false };
+      }
+
+      // For now, we'll trust the stored session data since the backend doesn't have
+      // a proper session validation endpoint. In a production app, you'd want to
+      // validate with the backend.
+      return { user: userData, isAuthenticated: true };
+    } catch (error: any) {
+      // Clear any corrupted session data
+      try {
+        await secureStorageService.clearAuthData();
+      } catch (clearError) {
+        console.error('Failed to clear corrupted session data:', clearError);
+      }
+      return rejectWithValue(error.message || 'Session restoration failed');
+    }
+  }
+);
+
+export const validateSession = createAsyncThunk(
+  'auth/validateSession',
+  async (_, { rejectWithValue }) => {
+    try {
+      const user = await authService.validateSession();
+      return user;
+    } catch (error: any) {
+      // If validation fails, clear stored session data
+      try {
+        await secureStorageService.clearAuthData();
+      } catch (clearError) {
+        console.error('Failed to clear invalid session data:', clearError);
+      }
+      return rejectWithValue(error.message || 'Session validation failed');
     }
   }
 );
@@ -122,6 +203,40 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.error = null;
+      })
+      // Session Restoration
+      .addCase(restoreSession.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(restoreSession.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.isAuthenticated = action.payload.isAuthenticated;
+        state.error = null;
+      })
+      .addCase(restoreSession.rejected, (state, action) => {
+        state.isLoading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = action.payload as string;
+      })
+      // Session Validation
+      .addCase(validateSession.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(validateSession.fulfilled, (state, action: PayloadAction<User>) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(validateSession.rejected, (state, action) => {
+        state.isLoading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = action.payload as string;
       });
   },
 });

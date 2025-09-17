@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "653356573746",
-    "project_id": "cointeligenciamobileapp-84858",
-    "storage_bucket": "cointeligenciamobileapp-84858.firebasestorage.app"
+    "project_number": "586498681231",
+    "project_id": "cointeligenciamobileapp",
+    "storage_bucket": "cointeligenciamobileapp.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:653356573746:android:b90b0dd47f45d8448dc82b",
+        "mobilesdk_app_id": "1:586498681231:android:75d0e4175eed01e1de83fa",
         "android_client_info": {
           "package_name": "com.cointeligenciamobileapp"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB0wsDJYNhI3cvaddwlkEH_e2pcdBn8jIM"
+          "current_key": "AIzaSyA4lWbucxTKN4PWNc_daFZuITiGU0Sr_ro"
         }
       ],
       "services": {

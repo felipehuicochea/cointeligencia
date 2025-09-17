@@ -1,15 +1,15 @@
 export const colors = {
   // Brand Colors
-  primary: '#0085ff',      // Background
-  secondary: '#17202c',    // Highlights
-  text: '#FFFFFF',         // Text
+  primary: '#0085ff',      // Primary blue
+  secondary: '#17202c',    // Dark blue
+  text: '#17202c',         // Dark text for light background
   
   // Derived Colors
-  background: '#0085ff',
-  surface: '#17202c',
-  card: '#17202c',
-  border: '#2a3a4a',
-  divider: '#2a3a4a',
+  background: '#FFFFFF',   // White background
+  surface: '#FFFFFF',      // White surface
+  card: '#FFFFFF',         // White cards
+  border: '#E0E0E0',       // Light border
+  divider: '#E0E0E0',      // Light divider
   
   // Status Colors
   success: '#4CAF50',
@@ -18,9 +18,9 @@ export const colors = {
   info: '#2196F3',
   
   // Text Colors
-  textPrimary: '#FFFFFF',
-  textSecondary: '#B0BEC5',
-  textDisabled: '#78909C',
+  textPrimary: '#17202c',
+  textSecondary: '#666666',
+  textDisabled: '#999999',
   
   // Interactive Colors
   buttonPrimary: '#17202c',
@@ -38,6 +38,6 @@ export const colors = {
 
 export const theme = {
   colors,
-  dark: true,
+  dark: false,
   roundness: 8,
 };

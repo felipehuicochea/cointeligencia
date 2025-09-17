@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   Card,
   Title,
@@ -17,13 +18,16 @@ import {
   Switch,
 } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '../store';
-import { fetchTradeHistory, setTradingMode, processTradeAlert } from '../store/slices/tradingSlice';
+import { RootState, AppDispatch } from '../store';
+import { fetchTradeHistory, setTradingMode, processTradeAlert, ignoreTrade } from '../store/slices/tradingSlice';
 import { TradeAlert, TradingMode } from '../types';
 import { colors } from '../theme/colors';
+import { useTranslation } from '../i18n';
 
 const DashboardScreen: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const navigation = useNavigation();
+  const { t } = useTranslation();
   const { user } = useSelector((state: RootState) => state.auth);
   const { config, history, credentials } = useSelector((state: RootState) => state.trading);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -59,10 +63,23 @@ const DashboardScreen: React.FC = () => {
         credentials
       })).unwrap();
       
-      Alert.alert('Success', 'Trade alert processed successfully');
+      Alert.alert(t('common.success'), t('dashboard.tradeProcessed'));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to process trade alert');
+      Alert.alert(t('common.error'), error.message || t('dashboard.tradeProcessFailed'));
     }
+  };
+
+  const handleIgnoreTrade = async (alert: TradeAlert) => {
+    try {
+      await dispatch(ignoreTrade(alert.id)).unwrap();
+      Alert.alert(t('common.success'), 'Trade ignored successfully');
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error.message || 'Failed to ignore trade');
+    }
+  };
+
+  const handleViewAllAlerts = () => {
+    navigation.navigate('Alerts' as never);
   };
 
   const handleExecuteTrade = (alert: TradeAlert) => {
@@ -72,11 +89,11 @@ const DashboardScreen: React.FC = () => {
     } else {
       // Manual mode - show confirmation
       Alert.alert(
-        'Execute Trade',
-        `Execute ${alert.side} order for ${alert.quantity} ${alert.symbol} at $${alert.price}?`,
+        t('dashboard.executeTrade'),
+        t('dashboard.executeTradeMessage', { side: alert.side, quantity: alert.quantity, symbol: alert.symbol, price: alert.price }),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Execute', onPress: () => handleProcessTradeAlert(alert) },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('dashboard.execute'), onPress: () => handleProcessTradeAlert(alert) },
         ]
       );
     }
@@ -100,20 +117,20 @@ const DashboardScreen: React.FC = () => {
   const getStatusText = (status: TradeAlert['status']) => {
     switch (status) {
       case 'executed':
-        return 'Executed';
+        return t('dashboard.executed');
       case 'ignored':
-        return 'Ignored';
+        return t('dashboard.ignored');
       case 'failed':
-        return 'Failed';
+        return t('dashboard.failed');
       case 'pending':
-        return 'Pending';
+        return t('dashboard.pending');
       default:
-        return 'Unknown';
+        return t('common.unknown');
     }
   };
 
-  // Get last 10 alerts
-  const recentAlerts = history.alerts.slice(0, 10);
+  // Get last 3 alerts
+  const recentAlerts = history.alerts.slice(0, 3);
 
   return (
     <ScrollView
@@ -127,11 +144,11 @@ const DashboardScreen: React.FC = () => {
         <Card.Content>
           <View style={styles.modeContainer}>
             <View style={styles.modeTextContainer}>
-              <Title>Trading Mode</Title>
+              <Title>{t('dashboard.tradingMode')}</Title>
               <Paragraph>
                 {config.mode === 'AUTO' 
-                  ? 'Automatically execute trades based on alerts' 
-                  : 'Manually review and approve trades'
+                  ? t('dashboard.autoModeDescription')
+                  : t('dashboard.manualModeDescription')
                 }
               </Paragraph>
             </View>
@@ -164,15 +181,28 @@ const DashboardScreen: React.FC = () => {
       <Card style={styles.card}>
         <Card.Content>
           <View style={styles.alertsHeader}>
-            <Title>Recent Alerts</Title>
-            <Text style={styles.alertsCount}>
-              {recentAlerts.length} of {history.alerts.length} total
-            </Text>
+            <Title>{t('dashboard.recentAlerts')}</Title>
+            <View style={styles.alertsHeaderRight}>
+              <Text style={styles.alertsCount}>
+                {t('dashboard.alertsCount', { count: recentAlerts.length, total: history.alerts.length })}
+              </Text>
+              {history.alerts.length > 3 && (
+                <Button
+                  mode="text"
+                  onPress={handleViewAllAlerts}
+                  style={styles.viewAllButton}
+                  textColor={colors.primary}
+                  compact
+                >
+                  View All
+                </Button>
+              )}
+            </View>
           </View>
           
           {recentAlerts.length === 0 ? (
             <Paragraph style={styles.noDataText}>
-              No alerts received yet. Trading alerts will appear here when received.
+              {t('dashboard.noAlerts')}
             </Paragraph>
           ) : (
             recentAlerts.map((alert, index) => (
@@ -234,17 +264,20 @@ const DashboardScreen: React.FC = () => {
                       style={[styles.actionButton, styles.executeButton]}
                       labelStyle={styles.actionButtonText}
                       buttonColor={colors.success}
+                      contentStyle={{ minHeight: 40 }}
                     >
-                      {config.mode === 'AUTO' ? 'Execute now' : 'Execute'}
+                      {config.mode === 'AUTO' ? t('dashboard.executeNow') : t('dashboard.execute')}
                     </Button>
                     <Button
                       mode="outlined"
-                      onPress={() => {/* TODO: Implement ignore */}}
+                      onPress={() => handleIgnoreTrade(alert)}
                       style={[styles.actionButton, styles.ignoreButton]}
+                      labelStyle={styles.actionButtonText}
                       textColor={colors.warning}
                       buttonColor="transparent"
+                      contentStyle={{ minHeight: 40 }}
                     >
-                      Ignore
+                      {t('dashboard.ignore')}
                     </Button>
                   </View>
                 )}
@@ -259,31 +292,31 @@ const DashboardScreen: React.FC = () => {
       {/* Quick Stats */}
       <Card style={styles.card}>
         <Card.Content>
-          <Title>Trading Summary</Title>
+          <Title>{t('dashboard.tradingSummary')}</Title>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
                 {history.alerts.filter(a => a.status === 'executed').length}
               </Text>
-              <Text style={styles.statLabel}>Executed</Text>
+              <Text style={styles.statLabel}>{t('dashboard.executed')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
                 {history.alerts.filter(a => a.status === 'ignored').length}
               </Text>
-              <Text style={styles.statLabel}>Ignored</Text>
+              <Text style={styles.statLabel}>{t('dashboard.ignored')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
                 {history.alerts.filter(a => a.status === 'failed').length}
               </Text>
-              <Text style={styles.statLabel}>Failed</Text>
+              <Text style={styles.statLabel}>{t('dashboard.failed')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>
                 {history.alerts.filter(a => a.status === 'pending').length}
               </Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t('dashboard.pending')}</Text>
             </View>
           </View>
         </Card.Content>
@@ -323,9 +356,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  alertsHeaderRight: {
+    alignItems: 'flex-end',
+  },
   alertsCount: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  viewAllButton: {
+    minHeight: 32,
   },
   noDataText: {
     textAlign: 'center',
@@ -340,7 +380,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   symbolContainer: {
     flex: 1,
@@ -356,8 +396,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   statusChip: {
-    height: 24,
-    minWidth: 70,
+    height: 28,
+    minWidth: 80,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
   },
   alertDetails: {
     marginBottom: 8,
@@ -432,11 +474,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 12,
+    gap: 12,
   },
   actionButton: {
     borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    minHeight: 40,
+    flex: 1,
+    marginHorizontal: 4,
   },
   executeButton: {
     backgroundColor: colors.success,
@@ -448,6 +492,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

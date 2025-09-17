@@ -1,5 +1,6 @@
 import { apiService } from './apiService';
 import { ExchangeCredentials, TradingConfig, TradeAlert } from '../types';
+import { secureStorageService } from './secureStorageService';
 
 // Exchange API response types
 export interface ExchangeOrderResponse {
@@ -25,6 +26,63 @@ export interface ParsedTradeAlert extends TradeAlert {
 }
 
 class TradingService {
+  private static readonly TRADE_ALERTS_KEY = 'trade_alerts';
+
+  // Store trade alert locally
+  async storeTradeAlert(alert: TradeAlert): Promise<void> {
+    try {
+      const existingAlerts = await this.getStoredTradeAlerts();
+      const updatedAlerts = [alert, ...existingAlerts]; // Add new alert at the beginning
+      
+      // Keep only the last 100 alerts to prevent storage bloat
+      const limitedAlerts = updatedAlerts.slice(0, 100);
+      
+      await secureStorageService.storeUserData({
+        ...await secureStorageService.getUserData(),
+        [TradingService.TRADE_ALERTS_KEY]: limitedAlerts
+      });
+    } catch (error) {
+      console.error('Failed to store trade alert:', error);
+    }
+  }
+
+  // Get stored trade alerts
+  async getStoredTradeAlerts(): Promise<TradeAlert[]> {
+    try {
+      const userData = await secureStorageService.getUserData();
+      return userData?.[TradingService.TRADE_ALERTS_KEY] || [];
+    } catch (error) {
+      console.error('Failed to get stored trade alerts:', error);
+      return [];
+    }
+  }
+
+  // Update trade alert status
+  async updateTradeAlertStatus(alertId: string, status: TradeAlert['status'], executedPrice?: number, error?: string): Promise<void> {
+    try {
+      const alerts = await this.getStoredTradeAlerts();
+      const alertIndex = alerts.findIndex(alert => alert.id === alertId);
+      
+      if (alertIndex !== -1) {
+        alerts[alertIndex].status = status;
+        if (executedPrice) {
+          alerts[alertIndex].executedPrice = executedPrice;
+          alerts[alertIndex].executedAt = new Date().toISOString();
+        }
+        if (error) {
+          alerts[alertIndex].error = error;
+        }
+        
+        await secureStorageService.storeUserData({
+          ...await secureStorageService.getUserData(),
+          [TradingService.TRADE_ALERTS_KEY]: alerts
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update trade alert status:', error);
+    }
+  }
+
   // Parse trade alert and calculate order parameters
   parseTradeAlert(
     alert: TradeAlert, 
@@ -415,55 +473,35 @@ class TradingService {
   }
 
   async ignoreTrade(alertId: string): Promise<TradeAlert> {
-    // Mock implementation - in real app this would update backend
-    console.log('Ignoring trade - using mock implementation');
-    return {
-      id: alertId,
-      symbol: 'MOCK',
-      side: 'BUY',
-      quantity: 0,
-      price: 0,
-      exchange: 'Mock',
-      strategy: 'Mock',
-      status: 'ignored',
-      timestamp: new Date().toISOString(),
-    };
+    // Update the real alert status to ignored
+    console.log('Ignoring trade:', alertId);
+    await this.updateTradeAlertStatus(alertId, 'ignored');
+    
+    // Return the updated alert
+    const alerts = await this.getStoredTradeAlerts();
+    const alert = alerts.find(a => a.id === alertId);
+    
+    if (alert) {
+      return alert;
+    }
+    
+    // Fallback if alert not found
+    throw new Error('Alert not found');
   }
 
   async getTradeHistory(): Promise<TradeAlert[]> {
-    // Since the backend doesn't have trading endpoints yet, return mock data
-    // In a real implementation, this would call the backend
-    console.log('Fetching trade history - using mock data for now');
-    return [
-      {
-        id: '1',
-        symbol: 'BTC/USDT',
-        side: 'BUY',
-        quantity: 0.001,
-        price: 45000,
-        exchange: 'Binance',
-        strategy: 'RSI Divergence',
-        status: 'pending',
-        timestamp: new Date().toISOString(),
-        stopLoss: 44000,
-        takeProfit: 46000,
-      },
-      {
-        id: '2',
-        symbol: 'ETH/USDT',
-        side: 'SELL',
-        quantity: 0.01,
-        price: 3200,
-        exchange: 'Kraken',
-        strategy: 'Moving Average Crossover',
-        status: 'executed',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        executedPrice: 3195,
-        executedAt: new Date(Date.now() - 3500000).toISOString(),
-        stopLoss: 3150,
-        takeProfit: 3250,
-      }
-    ];
+    // Get real stored alerts instead of mock data
+    console.log('Fetching trade history from local storage');
+    const storedAlerts = await this.getStoredTradeAlerts();
+    
+    // If no stored alerts, return empty array (no mock data)
+    if (storedAlerts.length === 0) {
+      console.log('No stored alerts found');
+      return [];
+    }
+    
+    console.log(`Found ${storedAlerts.length} stored alerts`);
+    return storedAlerts;
   }
 
   async getTradeAlert(alertId: string): Promise<TradeAlert> {

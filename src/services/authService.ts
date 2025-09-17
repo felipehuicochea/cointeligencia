@@ -2,7 +2,7 @@ import { apiService } from './apiService';
 import { User, LoginResponse, RegisterDeviceResponse } from '../types';
 
 class AuthService {
-  async login(credentials: { email: string; deviceId: string }): Promise<LoginResponse> {
+  async login(credentials: { email: string; deviceId: string; fcmToken?: string }): Promise<LoginResponse> {
     return apiService.login(credentials);
   }
 

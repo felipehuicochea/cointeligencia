@@ -36,6 +36,10 @@ export const es = {
     executedAt: 'Ejecutado: ${price}',
     executedTime: 'en {time}',
     error: 'Error: {message}',
+    tradeProcessed: 'Alerta de trading procesada exitosamente',
+    tradeProcessFailed: 'Error al procesar la alerta de trading',
+    executeTrade: 'Ejecutar Trade',
+    executeTradeMessage: '¿Ejecutar orden {side} por {quantity} {symbol} a ${price}?',
   },
 
   // Settings
@@ -140,6 +144,7 @@ export const es = {
     success: 'Éxito',
     warning: 'Advertencia',
     info: 'Información',
+    unknown: 'Desconocido',
   },
 
   // Trading Status

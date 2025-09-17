@@ -18,8 +18,8 @@ import {
 } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { loginUser, registerDevice } from '../store/slices/authSlice';
-import { registerForPushNotifications, refreshPushToken, testToken } from '../store/slices/notificationsSlice';
+import { loginUser, registerDevice, validateSession } from '../store/slices/authSlice';
+import { registerForPushNotifications } from '../store/slices/notificationsSlice';
 import * as Device from 'expo-device';
 import { colors } from '../theme/colors';
 
@@ -49,23 +49,19 @@ const LoginScreen: React.FC = () => {
       // Get device ID
       const deviceId = Device.osInternalBuildId || Device.deviceName || 'unknown';
       
-      // Login user with email and device ID (this also registers the device)
-      await dispatch(loginUser({ email, deviceId })).unwrap();
-      
-      // Register device for notifications if not already registered
-      if (!notificationToken) {
+      // Get FCM token for push notifications
+      let fcmToken = notificationToken;
+      if (!fcmToken) {
         try {
-          await dispatch(registerForPushNotifications()).unwrap();
+          fcmToken = await dispatch(registerForPushNotifications()).unwrap();
         } catch (notificationError: any) {
           console.warn('Failed to register for notifications:', notificationError);
-          // Don't fail the login if notifications fail
-          Alert.alert(
-            'Login Successful', 
-            'Login completed, but push notifications could not be set up. You can try again later in settings.',
-            [{ text: 'OK' }]
-          );
+          // Continue with login even if notifications fail
         }
       }
+      
+      // Login user with email, device ID, and FCM token
+      await dispatch(loginUser({ email, deviceId, fcmToken })).unwrap();
       
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'An error occurred during login');
@@ -74,27 +70,7 @@ const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleRefreshToken = async () => {
-    try {
-      await dispatch(refreshPushToken()).unwrap();
-      Alert.alert('Success', 'Push notification token refreshed successfully');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to refresh token');
-    }
-  };
 
-  const handleTestToken = async () => {
-    try {
-      const result = await dispatch(testToken()).unwrap();
-      if (result.valid) {
-        Alert.alert('Success', 'Token is valid and working correctly');
-      } else {
-        Alert.alert('Token Invalid', `Token validation failed: ${result.error}`);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to test token');
-    }
-  };
 
   return (
     <KeyboardAvoidingView
@@ -149,39 +125,6 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.helpText}>
               Basic subscribers can access alerts via Telegram only.
             </Text>
-            
-            {/* Debug section for development */}
-            {__DEV__ && (
-              <View style={styles.debugSection}>
-                <Text style={styles.debugTitle}>Debug Information</Text>
-                {notificationToken && (
-                  <Text style={styles.debugText}>
-                    Token: {notificationToken.substring(0, 20)}...
-                  </Text>
-                )}
-                {notificationError && (
-                  <Text style={styles.debugText}>
-                    Error: {notificationError}
-                  </Text>
-                )}
-                <Button
-                  mode="outlined"
-                  onPress={handleRefreshToken}
-                  style={styles.debugButton}
-                  buttonColor={colors.secondary}
-                >
-                  Refresh Token
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={handleTestToken}
-                  style={styles.debugButton}
-                  buttonColor={colors.secondary}
-                >
-                  Test Token
-                </Button>
-              </View>
-            )}
           </Card.Content>
         </Card>
       </ScrollView>
@@ -235,28 +178,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textSecondary,
     fontSize: 12,
-  },
-  debugSection: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  debugText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  debugButton: {
-    marginTop: 8,
   },
 });
 

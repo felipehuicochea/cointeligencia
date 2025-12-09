@@ -98,6 +98,16 @@ class TradingService {
       throw new Error(`No active credentials found for exchange: ${alert.exchange}`);
     }
 
+    // In test mode, use test API keys if available
+    const effectiveCreds = config.testMode && exchangeCreds.testApiKey && exchangeCreds.testApiSecret
+      ? {
+          ...exchangeCreds,
+          apiKey: exchangeCreds.testApiKey,
+          apiSecret: exchangeCreds.testApiSecret,
+          passphrase: exchangeCreds.testPassphrase || exchangeCreds.passphrase,
+        }
+      : exchangeCreds;
+
     // Calculate order quantity based on configuration
     let calculatedQuantity: number;
     let orderValue: number;
@@ -124,7 +134,7 @@ class TradingService {
       calculatedQuantity,
       calculatedPrice: alert.price,
       orderValue,
-      exchangeCredentials: exchangeCreds,
+      exchangeCredentials: effectiveCreds,
     };
   }
 
@@ -182,10 +192,110 @@ class TradingService {
     }
   }
 
+  // Get exchange API endpoint (live or test)
+  private getExchangeEndpoint(exchange: string, testMode: boolean): string {
+    const exchangeLower = exchange.toLowerCase();
+    
+    if (testMode) {
+      // Test/Sandbox endpoints
+      switch (exchangeLower) {
+        case 'binance':
+          return 'https://testnet.binance.vision/api/v3/order';
+        case 'kraken':
+          // Kraken - LIMITED TEST SUPPORT
+          // Kraken does NOT have a public spot trading testnet
+          // Kraken DOES have a futures testnet: https://demo-futures.kraken.com/derivatives/api/v3
+          // Documentation: https://support.kraken.com/en-us/articles/360024809011-api-testing-environment-derivatives
+          // For spot trading, consider:
+          // - Using demo/test API keys with live endpoint (if supported)
+          // - Implementing mock/simulation mode
+          // - Using third-party testing services
+          // NOTE: This endpoint uses the live API. Test with caution!
+          // TODO: Implement mock mode or find alternative testing solution for spot trading
+          return 'https://api.kraken.com/0/private/AddOrder';
+        case 'coinbase':
+        case 'coinbase pro':
+          return 'https://api-public.sandbox.pro.coinbase.com/orders';
+        case 'kucoin':
+          return 'https://openapi-sandbox.kucoin.com/api/v1/orders';
+        case 'bybit':
+          return 'https://api-testnet.bybit.com/v2/private/order/create';
+        case 'mexc':
+          // MEXC test endpoint - NEEDS VERIFICATION
+          // TODO: Verify if MEXC provides a public testnet/sandbox environment
+          // Documentation: https://mexcdevelop.github.io/apidocs/spot_v3_en/
+          // Steps to verify:
+          // 1. Check official MEXC API documentation for testnet/sandbox information
+          // 2. Test the endpoint with a test API key
+          // 3. Verify response format matches expected structure
+          // 4. Update endpoint if incorrect or unavailable
+          // If no testnet exists, consider:
+          // - Using demo/test API keys with live endpoint (if supported)
+          // - Implementing mock/simulation mode
+          // - Using third-party testing services
+          return 'https://testnet.mexc.com/api/v3/order';
+        case 'bingx':
+          // BingX test endpoint - NEEDS VERIFICATION
+          // TODO: Verify if BingX provides a public testnet/sandbox environment
+          // Documentation: https://bingx.com/en-us/help/api/
+          // Steps to verify:
+          // 1. Check official BingX API documentation for testnet/sandbox information
+          // 2. Test the endpoint with a test API key
+          // 3. Verify response format matches expected structure
+          // 4. Update endpoint if incorrect or unavailable
+          // If no testnet exists, consider:
+          // - Using demo/test API keys with live endpoint (if supported)
+          // - Implementing mock/simulation mode
+          // - Using third-party testing services
+          return 'https://open-api-testnet.bingx.com/openApi/spot/v1/trade/order';
+        case 'coinex':
+          // CoinEx test endpoint - NEEDS VERIFICATION
+          // TODO: Verify if CoinEx provides a public testnet/sandbox environment
+          // Documentation: https://docs.coinex.com/
+          // Steps to verify:
+          // 1. Check official CoinEx API documentation for testnet/sandbox information
+          // 2. Test the endpoint with a test API key
+          // 3. Verify response format matches expected structure
+          // 4. Update endpoint if incorrect or unavailable
+          // If no testnet exists, consider:
+          // - Using demo/test API keys with live endpoint (if supported)
+          // - Implementing mock/simulation mode
+          // - Using third-party testing services
+          return 'https://testnet.coinex.com/v1/order';
+        default:
+          throw new Error(`Test endpoint not configured for exchange: ${exchange}`);
+      }
+    } else {
+      // Live endpoints
+      switch (exchangeLower) {
+        case 'binance':
+          return 'https://api.binance.com/api/v3/order';
+        case 'kraken':
+          return 'https://api.kraken.com/0/private/AddOrder';
+        case 'coinbase':
+        case 'coinbase pro':
+          return 'https://api.pro.coinbase.com/orders';
+        case 'kucoin':
+          return 'https://api.kucoin.com/api/v1/orders';
+        case 'bybit':
+          return 'https://api.bybit.com/v2/private/order/create';
+        case 'mexc':
+          return 'https://api.mexc.com/api/v3/order';
+        case 'bingx':
+          return 'https://open-api.bingx.com/openApi/spot/v1/trade/order';
+        case 'coinex':
+          return 'https://api.coinex.com/v1/order';
+        default:
+          throw new Error(`Unsupported exchange: ${exchange}`);
+      }
+    }
+  }
+
   // Execute trade on exchange
   async executeTradeOnExchange(
     parsedAlert: ParsedTradeAlert, 
-    orderData: any
+    orderData: any,
+    testMode: boolean = false
   ): Promise<ExchangeOrderResponse> {
     const { exchange, exchangeCredentials } = parsedAlert;
     
@@ -194,6 +304,16 @@ class TradingService {
     }
 
     try {
+      // Get the appropriate endpoint based on test mode
+      const endpoint = this.getExchangeEndpoint(exchange, testMode);
+      
+      // Log test mode status
+      if (testMode) {
+        console.log(`[TEST MODE] Executing order on ${exchange} test endpoint: ${endpoint}`);
+      } else {
+        console.log(`[LIVE MODE] Executing order on ${exchange} live endpoint: ${endpoint}`);
+      }
+
       // Add authentication headers
       const headers = {
         'Content-Type': 'application/json',
@@ -202,33 +322,42 @@ class TradingService {
         ...(exchangeCredentials.passphrase && { 'X-Passphrase': exchangeCredentials.passphrase }),
       };
 
-      // Execute order based on exchange
-      let response: any;
+      // Execute order on exchange with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
-      switch (exchange.toLowerCase()) {
-        case 'binance':
-          response = await this.executeOnBinance(orderData, headers);
-          break;
-        case 'kraken':
-          response = await this.executeOnKraken(orderData, headers);
-          break;
-        case 'coinbase':
-          response = await this.executeOnCoinbase(orderData, headers);
-          break;
-        case 'kucoin':
-          response = await this.executeOnKucoin(orderData, headers);
-          break;
-        case 'bybit':
-          response = await this.executeOnBybit(orderData, headers);
-          break;
-        default:
-          throw new Error(`Unsupported exchange: ${exchange}`);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(orderData),
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: response.statusText }));
+        throw new Error(`Exchange API error: ${errorData.message || response.statusText}`);
       }
 
+      const responseData = await response.json();
+
       // Parse and standardize response
-      return this.parseExchangeResponse(response, exchange, parsedAlert);
+      return this.parseExchangeResponse(responseData, exchange, parsedAlert);
       
     } catch (error: any) {
+      console.error(`[${testMode ? 'TEST' : 'LIVE'} MODE] Exchange execution failed:`, error);
+      
+      // Handle timeout specifically
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout: Exchange did not respond within 30 seconds');
+      }
+      
+      // Handle network errors
+      if (error.message?.includes('Network request failed') || error.message?.includes('Failed to fetch')) {
+        throw new Error('Network error: Please check your internet connection and try again');
+      }
+      
       throw new Error(`Exchange execution failed: ${error.message}`);
     }
   }
@@ -347,11 +476,23 @@ class TradingService {
       // 2. Build exchange order
       const orderData = this.buildExchangeOrder(parsedAlert);
       
-      // 3. Execute on exchange
-      const exchangeResponse = await this.executeTradeOnExchange(parsedAlert, orderData);
+      // 3. Execute on exchange (pass testMode from config)
+      const exchangeResponse = await this.executeTradeOnExchange(
+        parsedAlert, 
+        orderData, 
+        config.testMode
+      );
       
       // 4. Store result
       await this.storeTradeResult(alert.id, exchangeResponse);
+      
+      // Log execution mode
+      console.log(`Trade alert ${alert.id} ${config.testMode ? 'TEST' : 'LIVE'} executed:`, {
+        exchange: alert.exchange,
+        symbol: alert.symbol,
+        side: alert.side,
+        status: exchangeResponse.status,
+      });
       
       return exchangeResponse;
       
@@ -369,13 +510,18 @@ class TradingService {
         error: error.message,
       });
       
+      console.error(`Trade alert ${alert.id} ${config.testMode ? 'TEST' : 'LIVE'} execution failed:`, error);
       throw error;
     }
   }
 
-  // Exchange-specific execution methods
-  async executeOnBinance(orderData: any, headers: any): Promise<any> {
-    const response = await fetch('https://api.binance.com/api/v3/order', {
+  // Legacy exchange-specific execution methods (deprecated - use executeTradeOnExchange instead)
+  // These are kept for backward compatibility but should not be used directly
+  async executeOnBinance(orderData: any, headers: any, testMode: boolean = false): Promise<any> {
+    const endpoint = testMode 
+      ? 'https://testnet.binance.vision/api/v3/order'
+      : 'https://api.binance.com/api/v3/order';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(orderData),
@@ -383,8 +529,10 @@ class TradingService {
     return response.json();
   }
 
-  async executeOnKraken(orderData: any, headers: any): Promise<any> {
-    const response = await fetch('https://api.kraken.com/0/private/AddOrder', {
+  async executeOnKraken(orderData: any, headers: any, testMode: boolean = false): Promise<any> {
+    // Kraken doesn't have a public testnet
+    const endpoint = 'https://api.kraken.com/0/private/AddOrder';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(orderData),
@@ -392,8 +540,11 @@ class TradingService {
     return response.json();
   }
 
-  async executeOnCoinbase(orderData: any, headers: any): Promise<any> {
-    const response = await fetch('https://api.pro.coinbase.com/orders', {
+  async executeOnCoinbase(orderData: any, headers: any, testMode: boolean = false): Promise<any> {
+    const endpoint = testMode
+      ? 'https://api-public.sandbox.pro.coinbase.com/orders'
+      : 'https://api.pro.coinbase.com/orders';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(orderData),
@@ -401,8 +552,11 @@ class TradingService {
     return response.json();
   }
 
-  async executeOnKucoin(orderData: any, headers: any): Promise<any> {
-    const response = await fetch('https://api.kucoin.com/api/v1/orders', {
+  async executeOnKucoin(orderData: any, headers: any, testMode: boolean = false): Promise<any> {
+    const endpoint = testMode
+      ? 'https://openapi-sandbox.kucoin.com/api/v1/orders'
+      : 'https://api.kucoin.com/api/v1/orders';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(orderData),
@@ -410,8 +564,11 @@ class TradingService {
     return response.json();
   }
 
-  async executeOnBybit(orderData: any, headers: any): Promise<any> {
-    const response = await fetch('https://api.bybit.com/v2/private/order/create', {
+  async executeOnBybit(orderData: any, headers: any, testMode: boolean = false): Promise<any> {
+    const endpoint = testMode
+      ? 'https://api-testnet.bybit.com/v2/private/order/create'
+      : 'https://api.bybit.com/v2/private/order/create';
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(orderData),

@@ -41,6 +41,14 @@ class AuthService {
   async validateSession(): Promise<User> {
     return this.checkSubscription();
   }
+
+  async updateDeviceToken(deviceToken: string): Promise<void> {
+    return apiService.updateDeviceToken({
+      email: '', // Will be filled from auth state
+      deviceId: '', // Will be filled from auth state
+      fcmToken: deviceToken
+    });
+  }
 }
 
 export const authService = new AuthService();

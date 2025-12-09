@@ -14,15 +14,18 @@ import { colors } from './src/theme/colors';
 import { initializeLanguage } from './src/store/slices/languageSlice';
 import { firebaseNotificationService } from './src/services/firebaseNotificationService';
 import { addTradeAlert, processTradeAlert } from './src/store/slices/tradingSlice';
-import { restoreSession } from './src/store/slices/authSlice';
+import { restoreSession, updateDeviceToken } from './src/store/slices/authSlice';
+import { setToken } from './src/store/slices/notificationsSlice';
 import { TradeAlert } from './src/types';
 import { tradingService } from './src/services/tradingService';
+import { AppState } from 'react-native';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import AlertsLogScreen from './src/screens/AlertsLogScreen';
+import TestApiConfigScreen from './src/screens/TestApiConfigScreen';
 
 // Icons
 import { MaterialIcons } from '@expo/vector-icons';
@@ -39,6 +42,35 @@ const LoadingScreen = () => (
     <Text style={styles.loadingText}>Loading...</Text>
   </View>
 );
+
+// Settings Stack Navigator (nested)
+const SettingsStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: colors.background,
+        },
+        headerTintColor: colors.textPrimary,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="SettingsMain" 
+        component={SettingsScreen}
+        options={{ title: 'Settings', headerShown: false }}
+      />
+      <Stack.Screen 
+        name="TestApiConfig" 
+        component={TestApiConfigScreen}
+        options={{ title: 'Test API Configuration' }}
+      />
+    </Stack.Navigator>
+  );
+};
 
 // Main Tab Navigator
 const MainTabs = () => {
@@ -71,7 +103,7 @@ const MainTabs = () => {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Alerts" component={AlertsLogScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Settings" component={SettingsStack} />
     </Tab.Navigator>
   );
 };
@@ -119,6 +151,105 @@ const Navigation = () => {
     // Restore session on app start
     dispatch(restoreSession());
   }, [dispatch]);
+
+  // Set up FCM token refresh listener and periodic token validation
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let tokenRefreshUnsubscribe: (() => void) | null = null;
+    let appStateSubscription: any = null;
+    let tokenCheckInterval: NodeJS.Timeout | null = null;
+
+    const setupTokenRefresh = async () => {
+      try {
+        // Listen for token refresh events
+        tokenRefreshUnsubscribe = await firebaseNotificationService.onTokenRefresh(
+          async (newToken) => {
+            console.log('FCM token refreshed, updating backend...', newToken);
+            try {
+              // Update token in Redux store
+              dispatch(setToken(newToken));
+              
+              // Update token in backend
+              await dispatch(updateDeviceToken(newToken)).unwrap();
+              console.log('FCM token updated successfully in backend');
+            } catch (error) {
+              console.error('Failed to update FCM token in backend:', error);
+            }
+          }
+        );
+
+        // Get current token and verify it's registered
+        const currentToken = await firebaseNotificationService.registerForPushNotifications();
+        if (currentToken) {
+          dispatch(setToken(currentToken));
+          
+          // Update backend with current token (in case it changed)
+          try {
+            await dispatch(updateDeviceToken(currentToken)).unwrap();
+            console.log('Current FCM token verified and updated in backend');
+          } catch (error) {
+            console.warn('Failed to update current FCM token in backend:', error);
+          }
+        }
+
+        // Set up periodic token check (every 24 hours)
+        tokenCheckInterval = setInterval(async () => {
+          try {
+            console.log('Performing periodic FCM token check...');
+            const token = await firebaseNotificationService.registerForPushNotifications();
+            if (token) {
+              dispatch(setToken(token));
+              await dispatch(updateDeviceToken(token)).unwrap();
+              console.log('Periodic FCM token check completed');
+            }
+          } catch (error) {
+            console.error('Periodic FCM token check failed:', error);
+          }
+        }, 24 * 60 * 60 * 1000); // 24 hours
+
+        // Refresh token when app comes to foreground
+        const handleAppStateChange = (nextAppState: string) => {
+          if (nextAppState === 'active') {
+            console.log('App came to foreground, checking FCM token...');
+            firebaseNotificationService.registerForPushNotifications()
+              .then((token) => {
+                if (token) {
+                  dispatch(setToken(token));
+                  dispatch(updateDeviceToken(token)).catch((error) => {
+                    console.warn('Failed to update token on foreground:', error);
+                  });
+                }
+              })
+              .catch((error) => {
+                console.warn('Failed to get token on foreground:', error);
+              });
+          }
+        };
+
+        appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+        console.log('FCM token refresh listener set up successfully');
+      } catch (error) {
+        console.error('Failed to set up FCM token refresh listener:', error);
+      }
+    };
+
+    setupTokenRefresh();
+
+    // Cleanup
+    return () => {
+      if (tokenRefreshUnsubscribe) {
+        tokenRefreshUnsubscribe();
+      }
+      if (appStateSubscription) {
+        appStateSubscription.remove();
+      }
+      if (tokenCheckInterval) {
+        clearInterval(tokenCheckInterval);
+      }
+    };
+  }, [isAuthenticated, dispatch]);
 
   // Set up notification listeners when authenticated
   useEffect(() => {

@@ -22,12 +22,14 @@ import {
 } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { updateTradingConfig, saveCredentials, removeCredentials, setTradingMode, setOrderSizeType, setOrderSizeValue, setMaxPositionSize, setStopLossPercentage, setTakeProfitPercentage, validateCredentials } from '../store/slices/tradingSlice';
+import { useNavigation } from '@react-navigation/native';
+import { updateTradingConfig, saveCredentials, removeCredentials, setTradingMode, setTestMode, setOrderSizeType, setOrderSizeValue, setMaxPositionSize, setStopLossPercentage, setTakeProfitPercentage, validateCredentials } from '../store/slices/tradingSlice';
 import { logoutUser } from '../store/slices/authSlice';
 import { changeLanguage } from '../store/slices/languageSlice';
 import { TradingMode, ExchangeCredentials } from '../types';
 import { colors } from '../theme/colors';
 import { useTranslation } from '../i18n';
+import { getExchangeTestRequirements, requiresSeparateTestKeys, hasPublicTestAPI, getTestModeNotes } from '../services/exchangeTestRequirements';
 
 // Supported exchanges
 const SUPPORTED_EXCHANGES = [
@@ -41,6 +43,7 @@ const SUPPORTED_EXCHANGES = [
 ];
 
 const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const dispatch = useDispatch<AppDispatch>();
   const { t, settings, getCurrentLanguage, getAvailableLanguages, setLanguage } = useTranslation();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -67,6 +70,72 @@ const SettingsScreen: React.FC = () => {
   const handleModeToggle = () => {
     const newMode: TradingMode = config.mode === 'AUTO' ? 'MANUAL' : 'AUTO';
     dispatch(setTradingMode(newMode));
+  };
+
+  const handleTestModeToggle = () => {
+    const newTestMode = !config.testMode;
+    
+    // Check if exchange is selected and credentials are valid
+    if (newTestMode) {
+      // Check if at least one exchange is configured
+      if (credentials.length === 0) {
+        Alert.alert(
+          settings('noExchangeConfigured'),
+          settings('noExchangeConfiguredMessage'),
+          [{ text: t('common.ok') || 'OK' }]
+        );
+        return;
+      }
+
+      // Check if all configured exchanges have valid credentials for test mode
+      const exchangesWithoutTestKeys: string[] = [];
+      credentials.forEach(cred => {
+        const requirements = getExchangeTestRequirements(cred.exchange);
+        if (requirements?.requiresSeparateTestKeys) {
+          if (!cred.testApiKey || !cred.testApiSecret) {
+            exchangesWithoutTestKeys.push(cred.exchange);
+          }
+        }
+      });
+
+      if (exchangesWithoutTestKeys.length > 0) {
+        Alert.alert(
+          settings('testApiKeysRequiredTitle'),
+          settings('testApiKeysRequiredMultiple', { exchanges: exchangesWithoutTestKeys.join('\n') }),
+          [{ text: t('common.ok') || 'OK' }]
+        );
+        return;
+      }
+
+      // Enable test mode
+      dispatch(setTestMode(true));
+      Alert.alert(
+        settings('testModeEnabled'),
+        settings('testModeEnabledMessage'),
+        [{ text: t('common.ok') || 'OK' }]
+      );
+    } else {
+      // Require confirmation before disabling test mode (switching to live)
+      Alert.alert(
+        settings('testModeDisabled'),
+        settings('testModeDisabledMessage'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { 
+            text: t('common.confirm'), 
+            style: 'destructive',
+            onPress: () => {
+              dispatch(setTestMode(false));
+              Alert.alert(
+                settings('liveModeEnabled'),
+                settings('liveModeEnabledMessage'),
+                [{ text: t('common.ok') || 'OK' }]
+              );
+            }
+          }
+        ]
+      );
+    }
   };
 
   const handleOrderSizeTypeChange = (type: 'percentage' | 'fixed') => {
@@ -112,12 +181,12 @@ const SettingsScreen: React.FC = () => {
 
   const handleAddCredential = async () => {
     if (!newCredential.exchange || !newCredential.apiKey || !newCredential.apiSecret) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('common.error'), settings('fillAllFields'));
       return;
     }
 
     try {
-      // First validate the credentials
+      // Validate the live credentials
       const validationResult = await dispatch(validateCredentials({
         exchange: newCredential.exchange,
         apiKey: newCredential.apiKey,
@@ -128,13 +197,14 @@ const SettingsScreen: React.FC = () => {
 
       if (!validationResult.isValid) {
         Alert.alert(
-          'Invalid Credentials', 
-          `Failed to validate ${newCredential.exchange} credentials: ${validationResult.error}`
+          settings('invalidCredentials'), 
+          `${settings('invalidCredentials')}: ${validationResult.error}`
         );
         return;
       }
 
       // If validation passes, save the credentials
+      const exchangeName = newCredential.exchange;
       await dispatch(saveCredentials({
         exchange: newCredential.exchange,
         apiKey: newCredential.apiKey,
@@ -144,31 +214,36 @@ const SettingsScreen: React.FC = () => {
       })).unwrap();
       
       setShowCredentialDialog(false);
-      setNewCredential({ exchange: '', apiKey: '', apiSecret: '', passphrase: '' });
+      setNewCredential({ 
+        exchange: '', 
+        apiKey: '', 
+        apiSecret: '', 
+        passphrase: '',
+      });
       Alert.alert(
-        'Success', 
-        `${newCredential.exchange} credentials validated and added successfully!`
+        t('common.success'), 
+        settings('credentialsValidated', { exchange: exchangeName })
       );
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to add credentials');
+      Alert.alert(t('common.error'), error.message || settings('credentialsAddFailed'));
     }
   };
 
   const handleRemoveCredential = (credentialId: string) => {
     Alert.alert(
-      'Remove Credentials',
-      'Are you sure you want to remove these API credentials?',
+      settings('removeConfirmTitle'),
+      settings('removeConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: settings('remove'),
           style: 'destructive',
           onPress: async () => {
             try {
               await dispatch(removeCredentials(credentialId));
-              Alert.alert('Success', 'Credentials removed successfully');
+              Alert.alert(t('common.success'), settings('credentialsRemoved'));
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to remove credentials');
+              Alert.alert(t('common.error'), error.message || settings('credentialsRemoveFailed'));
             }
           },
         },
@@ -260,12 +335,19 @@ const SettingsScreen: React.FC = () => {
   };
 
   const selectExchange = (exchange: string) => {
-    setNewCredential({ ...newCredential, exchange });
+    setNewCredential({ 
+      ...newCredential, 
+      exchange,
+    });
     setShowExchangeMenu(false);
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.scrollView}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={true}
+    >
       {/* User Info */}
       <Card style={styles.card}>
         <Card.Content>
@@ -314,6 +396,87 @@ const SettingsScreen: React.FC = () => {
         </Card.Content>
       </Card>
 
+      {/* Test Mode Toggle */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.modeContainer}>
+            <View style={styles.modeTextContainer}>
+              <Title>{settings('testMode')}</Title>
+              <Paragraph>
+                {config.testMode 
+                  ? settings('testModeDescription')
+                  : settings('testModeDescriptionLive')
+                }
+              </Paragraph>
+              {credentials.length > 0 && (
+                <Paragraph style={styles.testModeInfo}>
+                  {settings('configuredExchanges', { exchanges: credentials.map(c => c.exchange).join(', ') })}
+                </Paragraph>
+              )}
+            </View>
+            <Switch
+              value={config.testMode}
+              onValueChange={handleTestModeToggle}
+              color={config.testMode ? colors.warning : colors.success}
+              disabled={credentials.length === 0}
+            />
+          </View>
+          <Chip
+            mode="outlined"
+            style={[
+              styles.modeChip, 
+              { 
+                borderColor: config.testMode ? colors.warning : colors.success,
+                backgroundColor: config.testMode ? colors.warning + '20' : colors.success + '20',
+                opacity: credentials.length === 0 ? 0.5 : 1,
+              }
+            ]}
+            textStyle={{ 
+              color: config.testMode ? colors.warning : colors.success,
+              fontWeight: 'bold'
+            }}
+            {...(config.testMode ? {} : { icon: 'check-circle' })}
+          >
+            {config.testMode ? settings('testMode').toUpperCase() + ' MODE' : settings('liveMode')}
+          </Chip>
+          {credentials.length === 0 && (
+            <Paragraph style={styles.testModeWarning}>
+              {settings('testModeConfigureWarning')}
+            </Paragraph>
+          )}
+          {config.testMode && credentials.length > 0 && (
+            <>
+              <Paragraph style={styles.testModeWarning}>
+                {settings('testModeWarning')}
+              </Paragraph>
+              <View style={styles.exchangeTestStatusContainer}>
+                {credentials.map(cred => {
+                  const requirements = getExchangeTestRequirements(cred.exchange);
+                  if (!requirements) return null;
+                  
+                  return (
+                    <View key={cred.id} style={styles.exchangeTestInfo}>
+                      <Text style={styles.exchangeTestName}>{cred.exchange}:</Text>
+                      {requirements.requiresSeparateTestKeys ? (
+                        cred.testApiKey && cred.testApiSecret ? (
+                          <Text style={styles.exchangeTestStatus}>{settings('testApiKeysConfigured')}</Text>
+                        ) : (
+                          <Text style={styles.exchangeTestStatusError}>{settings('testApiKeysRequired')}</Text>
+                        )
+                      ) : requirements.usesPublicTestAPI ? (
+                        <Text style={styles.exchangeTestStatus}>{settings('usingSameKeysWithTestEndpoint')}</Text>
+                      ) : (
+                        <Text style={styles.exchangeTestStatusWarning}>{settings('noTestEndpointAvailable')}</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
+        </Card.Content>
+      </Card>
+
       {/* Exchange Configuration */}
       <Card style={styles.card}>
         <Card.Content>
@@ -322,16 +485,27 @@ const SettingsScreen: React.FC = () => {
             {t('settings.exchangeDescription')}
           </Paragraph>
           
-          <Button
-            mode="contained"
-            onPress={() => setShowCredentialDialog(true)}
-            icon="plus"
-            style={styles.addButton}
-            buttonColor={colors.secondary}
-            textColor="#FFFFFF"
-          >
-            {t('settings.addExchange')}
-          </Button>
+          <View style={styles.buttonRow}>
+            <Button
+              mode="contained"
+              onPress={() => setShowCredentialDialog(true)}
+              icon="plus"
+              style={[styles.addButton, styles.halfButton]}
+              buttonColor={colors.secondary}
+              textColor="#FFFFFF"
+            >
+              {t('settings.addExchange')}
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => navigation.navigate('TestApiConfig' as never)}
+              icon="flask-outline"
+              style={[styles.testApiButton, styles.halfButton]}
+              textColor={colors.warning}
+            >
+              {settings('testApi') || 'Test API'}
+            </Button>
+          </View>
           
           {credentials.length === 0 ? (
             <View style={styles.noCredentialsContainer}>
@@ -419,8 +593,8 @@ const SettingsScreen: React.FC = () => {
           <View style={styles.orderSizeDisplay}>
             <Text style={styles.orderSizeText}>
               {config.orderSizeType === 'percentage' 
-                ? `${config.orderSizeValue}% of Balance`
-                : `$${config.orderSizeValue.toLocaleString()}`
+                ? settings('percentageOfBalance', { value: config.orderSizeValue })
+                : settings('fixedAmount', { value: config.orderSizeValue.toLocaleString() })
               }
             </Text>
             <Chip
@@ -433,7 +607,7 @@ const SettingsScreen: React.FC = () => {
           </View>
           
           <List.Item
-            title="Maximum position size"
+            title={settings('maximumPositionSize')}
             description={`$${config.maxPositionSize.toLocaleString()}`}
             left={(props) => <List.Icon {...props} icon="currency-usd" />}
             right={() => (
@@ -444,12 +618,12 @@ const SettingsScreen: React.FC = () => {
                 compact
                 textColor={colors.textSecondary}
               >
-                Configure
+                {t('settings.configure')}
               </Button>
             )}
           />
           <List.Item
-            title="Stop loss percentage"
+            title={settings('stopLossPercentage')}
             description={`${config.stopLossPercentage}%`}
             left={(props) => <List.Icon {...props} icon="alert" />}
             right={() => (
@@ -460,12 +634,12 @@ const SettingsScreen: React.FC = () => {
                 compact
                 textColor={colors.textSecondary}
               >
-                Configure
+                {t('settings.configure')}
               </Button>
             )}
           />
           <List.Item
-            title="Take profit percentage"
+            title={settings('takeProfitPercentage')}
             description={`${config.takeProfitPercentage}%`}
             left={(props) => <List.Icon {...props} icon="trending-up" />}
             right={() => (
@@ -476,12 +650,12 @@ const SettingsScreen: React.FC = () => {
                 compact
                 textColor={colors.textSecondary}
               >
-                Configure
+                {t('settings.configure')}
               </Button>
             )}
           />
           <List.Item
-            title="Risk level"
+            title={settings('riskLevel')}
             description={config.riskLevel}
             left={(props) => <List.Icon {...props} icon="shield" />}
           />
@@ -491,14 +665,14 @@ const SettingsScreen: React.FC = () => {
       {/* Notification Settings */}
       <Card style={styles.card}>
         <Card.Content>
-          <Title>Notification Settings</Title>
+          <Title>{settings('notificationSettings')}</Title>
           <Paragraph style={styles.description}>
-            Configure how you receive trading alerts and notifications.
+            {settings('notificationDescription')}
           </Paragraph>
           
           <List.Item
-            title="Push Notifications"
-            description="Receive trading alerts on your device"
+            title={settings('pushNotifications')}
+            description={settings('pushNotificationsDescription')}
             left={(props) => <List.Icon {...props} icon="bell" />}
             right={() => (
               <Switch 
@@ -510,8 +684,8 @@ const SettingsScreen: React.FC = () => {
           />
           
           <List.Item
-            title="Sound Alerts"
-            description="Play sound when receiving notifications"
+            title={settings('soundAlerts')}
+            description={settings('soundAlertsDescription')}
             left={(props) => <List.Icon {...props} icon="volume-high" />}
             right={() => (
               <Switch 
@@ -523,8 +697,8 @@ const SettingsScreen: React.FC = () => {
           />
           
           <List.Item
-            title="Vibration"
-            description="Vibrate when receiving notifications"
+            title={settings('vibration')}
+            description={settings('vibrationDescription')}
             left={(props) => <List.Icon {...props} icon="vibrate" />}
             right={() => (
               <Switch 
@@ -542,7 +716,7 @@ const SettingsScreen: React.FC = () => {
         <Card.Content>
           <Title>{settings('appSettings')}</Title>
           <Paragraph style={styles.description}>
-            General application settings and preferences.
+            {settings('appSettingsDescription') || 'General application settings and preferences.'}
           </Paragraph>
         </Card.Content>
       </Card>
@@ -581,7 +755,7 @@ const SettingsScreen: React.FC = () => {
             style={styles.logoutButton}
             textColor={colors.error}
           >
-            Logout
+            {settings('logout')}
           </Button>
         </Card.Content>
       </Card>
@@ -589,9 +763,9 @@ const SettingsScreen: React.FC = () => {
       {/* Add Credential Dialog */}
       <Portal>
         <Dialog visible={showCredentialDialog} onDismiss={() => setShowCredentialDialog(false)}>
-          <Dialog.Title>Add exchange credentials</Dialog.Title>
+          <Dialog.Title>{settings('addExchangeCredentials')}</Dialog.Title>
           <Dialog.Content>
-            <Text style={styles.dialogLabel}>Exchange</Text>
+            <Text style={styles.dialogLabel}>{t('exchangeDialog.exchange')}</Text>
             <Menu
               visible={showExchangeMenu}
               onDismiss={() => setShowExchangeMenu(false)}
@@ -603,7 +777,7 @@ const SettingsScreen: React.FC = () => {
                   contentStyle={styles.exchangeButtonContent}
                   textColor={colors.textSecondary}
                 >
-                  {newCredential.exchange || 'Select exchange'}
+                  {newCredential.exchange || settings('selectExchange')}
                 </Button>
               }
             >
@@ -616,36 +790,36 @@ const SettingsScreen: React.FC = () => {
               ))}
             </Menu>
             
-            <Text style={styles.dialogLabel}>API Key</Text>
+            <Text style={styles.dialogLabel}>{settings('apiKey')}</Text>
             <TextInput
               value={newCredential.apiKey}
               onChangeText={(text) => setNewCredential({ ...newCredential, apiKey: text })}
               mode="outlined"
               style={styles.dialogInput}
-              placeholder="Enter your API key"
+              placeholder={settings('apiKeyPlaceholder')}
             />
             
-            <Text style={styles.dialogLabel}>API Secret</Text>
+            <Text style={styles.dialogLabel}>{settings('apiSecret')}</Text>
             <TextInput
               value={newCredential.apiSecret}
               onChangeText={(text) => setNewCredential({ ...newCredential, apiSecret: text })}
               mode="outlined"
               secureTextEntry
               style={styles.dialogInput}
-              placeholder="Enter your API secret"
+              placeholder={settings('apiSecretPlaceholder')}
             />
             
-            <Text style={styles.dialogLabel}>Passphrase (optional)</Text>
+            <Text style={styles.dialogLabel}>{settings('passphrase')}</Text>
             <TextInput
               value={newCredential.passphrase}
               onChangeText={(text) => setNewCredential({ ...newCredential, passphrase: text })}
               mode="outlined"
               style={styles.dialogInput}
-              placeholder="Required for some exchanges like Coinbase Pro"
+              placeholder={settings('passphrasePlaceholder')}
             />
 
             {validation.isLoading && (
-              <Text style={styles.validationText}>Validating credentials...</Text>
+              <Text style={styles.validationText}>{settings('validatingCredentials')}</Text>
             )}
             
             {validation.error && (
@@ -653,20 +827,20 @@ const SettingsScreen: React.FC = () => {
             )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowCredentialDialog(false)}>Cancel</Button>
+            <Button onPress={() => setShowCredentialDialog(false)}>{t('common.cancel')}</Button>
             <Button 
               onPress={handleTestCredentials}
               loading={isTestingCredentials}
               disabled={isTestingCredentials || validation.isLoading}
             >
-              Test
+              {settings('test')}
             </Button>
             <Button 
               onPress={handleAddCredential}
               loading={validation.isLoading}
               disabled={validation.isLoading || isTestingCredentials}
             >
-              Add
+              {settings('add')}
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -675,9 +849,9 @@ const SettingsScreen: React.FC = () => {
       {/* Order Size Configuration Dialog */}
       <Portal>
         <Dialog visible={showOrderSizeDialog} onDismiss={() => setShowOrderSizeDialog(false)}>
-          <Dialog.Title>Configure order size</Dialog.Title>
+          <Dialog.Title>{t('orderSizeDialog.title')}</Dialog.Title>
           <Dialog.Content>
-            <Text style={styles.dialogLabel}>Order size type</Text>
+            <Text style={styles.dialogLabel}>{t('orderSizeDialog.orderSizeType')}</Text>
             <View style={styles.orderSizeTypeContainer}>
               <Button
                 mode={config.orderSizeType === 'percentage' ? 'contained' : 'outlined'}
@@ -686,7 +860,7 @@ const SettingsScreen: React.FC = () => {
                 buttonColor={config.orderSizeType === 'percentage' ? colors.secondary : 'transparent'}
                 textColor={config.orderSizeType === 'percentage' ? '#FFFFFF' : colors.textSecondary}
               >
-                Percentage of balance
+                {t('orderSizeDialog.percentageOfBalance')}
               </Button>
               <Button
                 mode={config.orderSizeType === 'fixed' ? 'contained' : 'outlined'}
@@ -695,12 +869,12 @@ const SettingsScreen: React.FC = () => {
                 buttonColor={config.orderSizeType === 'fixed' ? colors.secondary : 'transparent'}
                 textColor={config.orderSizeType === 'fixed' ? '#FFFFFF' : colors.textSecondary}
               >
-                Fixed amount (USD)
+                {t('orderSizeDialog.fixedAmount')}
               </Button>
             </View>
             
             <Text style={styles.dialogLabel}>
-              {config.orderSizeType === 'percentage' ? 'Percentage (%)' : 'Fixed amount ($)'}
+              {config.orderSizeType === 'percentage' ? t('orderSizeDialog.percentage') : t('orderSizeDialog.fixedAmountLabel')}
             </Text>
             <TextInput
               value={config.orderSizeValue.toString()}
@@ -708,18 +882,18 @@ const SettingsScreen: React.FC = () => {
               mode="outlined"
               style={styles.dialogInput}
               keyboardType="numeric"
-              placeholder={config.orderSizeType === 'percentage' ? 'Enter percentage (0-100)' : 'Enter amount in USD'}
+              placeholder={config.orderSizeType === 'percentage' ? t('orderSizeDialog.percentagePlaceholder') : t('orderSizeDialog.fixedAmountPlaceholder')}
             />
             
             <Text style={styles.dialogDescription}>
               {config.orderSizeType === 'percentage' 
-                ? 'This percentage of your available balance will be used for each trade.'
-                : 'This fixed amount in USD will be used for each trade.'
+                ? t('orderSizeDialog.percentageDescription')
+                : t('orderSizeDialog.fixedDescription')
               }
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowOrderSizeDialog(false)}>Done</Button>
+            <Button onPress={() => setShowOrderSizeDialog(false)}>{t('orderSizeDialog.done')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -727,23 +901,23 @@ const SettingsScreen: React.FC = () => {
       {/* Maximum Position Size Configuration Dialog */}
       <Portal>
         <Dialog visible={showMaxPositionDialog} onDismiss={() => setShowMaxPositionDialog(false)}>
-          <Dialog.Title>Configure maximum position size</Dialog.Title>
+          <Dialog.Title>{settings('configureMaximumPositionSize')}</Dialog.Title>
           <Dialog.Content>
-            <Text style={styles.dialogLabel}>Maximum position size ($)</Text>
+            <Text style={styles.dialogLabel}>{settings('maximumPositionSizeLabel')}</Text>
             <TextInput
               value={config.maxPositionSize.toString()}
               onChangeText={handleMaxPositionSizeChange}
               mode="outlined"
               style={styles.dialogInput}
               keyboardType="numeric"
-              placeholder="Enter maximum position size in USD"
+              placeholder={settings('maximumPositionSizePlaceholder')}
             />
             <Text style={styles.dialogDescription}>
-              This is the maximum amount you're willing to risk on a single trade.
+              {settings('maximumPositionSizeDescription')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowMaxPositionDialog(false)}>Done</Button>
+            <Button onPress={() => setShowMaxPositionDialog(false)}>{settings('done')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -751,23 +925,23 @@ const SettingsScreen: React.FC = () => {
       {/* Stop Loss Configuration Dialog */}
       <Portal>
         <Dialog visible={showStopLossDialog} onDismiss={() => setShowStopLossDialog(false)}>
-          <Dialog.Title>Configure stop loss percentage</Dialog.Title>
+          <Dialog.Title>{settings('configureStopLossPercentage')}</Dialog.Title>
           <Dialog.Content>
-            <Text style={styles.dialogLabel}>Stop loss percentage (%)</Text>
+            <Text style={styles.dialogLabel}>{settings('stopLossPercentageLabel')}</Text>
             <TextInput
               value={config.stopLossPercentage.toString()}
               onChangeText={handleStopLossPercentageChange}
               mode="outlined"
               style={styles.dialogInput}
               keyboardType="numeric"
-              placeholder="Enter stop loss percentage (0-100)"
+              placeholder={settings('stopLossPercentagePlaceholder')}
             />
             <Text style={styles.dialogDescription}>
-              This percentage represents how much you're willing to lose on a trade before automatically closing the position.
+              {settings('stopLossPercentageDescription')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowStopLossDialog(false)}>Done</Button>
+            <Button onPress={() => setShowStopLossDialog(false)}>{settings('done')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -775,23 +949,23 @@ const SettingsScreen: React.FC = () => {
       {/* Take Profit Configuration Dialog */}
       <Portal>
         <Dialog visible={showTakeProfitDialog} onDismiss={() => setShowTakeProfitDialog(false)}>
-          <Dialog.Title>Configure take profit percentage</Dialog.Title>
+          <Dialog.Title>{settings('configureTakeProfitPercentage')}</Dialog.Title>
           <Dialog.Content>
-            <Text style={styles.dialogLabel}>Take profit percentage (%)</Text>
+            <Text style={styles.dialogLabel}>{settings('takeProfitPercentageLabel')}</Text>
             <TextInput
               value={config.takeProfitPercentage.toString()}
               onChangeText={handleTakeProfitPercentageChange}
               mode="outlined"
               style={styles.dialogInput}
               keyboardType="numeric"
-              placeholder="Enter take profit percentage (0-100)"
+              placeholder={settings('takeProfitPercentagePlaceholder')}
             />
             <Text style={styles.dialogDescription}>
-              This percentage represents your profit target before automatically closing the position.
+              {settings('takeProfitPercentageDescription')}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setShowTakeProfitDialog(false)}>Done</Button>
+            <Button onPress={() => setShowTakeProfitDialog(false)}>{settings('done')}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -800,10 +974,13 @@ const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  container: {
     padding: 16,
+    paddingBottom: 32,
   },
   card: {
     marginBottom: 16,
@@ -823,6 +1000,73 @@ const styles = StyleSheet.create({
   modeChip: {
     alignSelf: 'flex-start',
     borderWidth: 2,
+    marginTop: 8,
+  },
+  testModeWarning: {
+    fontSize: 12,
+    color: colors.warning,
+    marginTop: 8,
+    fontStyle: 'italic',
+    backgroundColor: colors.warning + '10',
+    padding: 8,
+    borderRadius: 4,
+  },
+  testModeInfo: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  testModeNote: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+    marginBottom: 8,
+    fontStyle: 'italic',
+    backgroundColor: colors.info + '10',
+    padding: 8,
+    borderRadius: 4,
+  },
+  exchangeTestStatusContainer: {
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 4,
+  },
+  exchangeTestInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  exchangeTestName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+  },
+  exchangeTestStatus: {
+    fontSize: 11,
+    color: colors.success,
+  },
+  exchangeTestStatusError: {
+    fontSize: 11,
+    color: colors.error,
+  },
+  exchangeTestStatusWarning: {
+    fontSize: 11,
+    color: colors.warning,
+  },
+  dialogSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  required: {
+    color: colors.error,
+  },
+  divider: {
+    marginVertical: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -948,7 +1192,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  halfButton: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
   addButton: {
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  testApiButton: {
     marginBottom: 16,
     marginTop: 8,
   },

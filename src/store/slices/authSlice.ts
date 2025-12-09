@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { AuthState, User, LoginResponse, RegisterDeviceResponse } from '../../types';
 import { authService } from '../../services/authService';
 import { secureStorageService } from '../../services/secureStorageService';
+import { apiService } from '../../services/apiService';
 
 const initialState: AuthState = {
   user: null,
@@ -135,6 +136,33 @@ export const validateSession = createAsyncThunk(
         console.error('Failed to clear invalid session data:', clearError);
       }
       return rejectWithValue(error.message || 'Session validation failed');
+    }
+  }
+);
+
+export const updateDeviceToken = createAsyncThunk(
+  'auth/updateDeviceToken',
+  async (fcmToken: string, { rejectWithValue, getState }) => {
+    try {
+      const state = getState() as any;
+      const user = state.auth.user;
+      const email = await secureStorageService.getUserEmail();
+      const deviceId = await secureStorageService.getDeviceId();
+      
+      if (!email || !deviceId) {
+        throw new Error('Missing email or device ID for token update');
+      }
+
+      await apiService.updateDeviceToken({
+        email,
+        deviceId,
+        fcmToken
+      });
+      
+      return fcmToken;
+    } catch (error: any) {
+      console.error('Failed to update device token:', error);
+      return rejectWithValue(error.message || 'Failed to update device token');
     }
   }
 );

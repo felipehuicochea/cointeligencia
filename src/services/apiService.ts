@@ -134,6 +134,30 @@ class ApiService {
     return Promise.resolve({ token: '' });
   }
 
+  // Update FCM token for device
+  async updateDeviceToken(credentials: { email: string; deviceId: string; fcmToken: string }) {
+    try {
+      const response = await fetch(`${this.config.baseURL}/users/register_device`, {
+        method: 'POST',
+        headers: this.config.headers,
+        body: JSON.stringify(credentials),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Device token updated successfully:', result);
+        return result;
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('Device token update failed:', response.status, errorData);
+        throw new Error(errorData.message || `Failed to update device token: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('Device token update error:', error);
+      throw error;
+    }
+  }
+
   // Secure storage methods for credentials
   async storeApiSecret(secret: string): Promise<void> {
     await SecureStore.setItemAsync('api_secret', secret);

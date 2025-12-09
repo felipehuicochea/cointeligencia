@@ -13,6 +13,7 @@ const initialState = {
     takeProfitPercentage: 77,
     orderSizeType: 'percentage' as const,
     orderSizeValue: 100, // 100% of balance by default
+    testMode: false, // Default to live mode
   } as TradingConfig,
   credentials: [] as ExchangeCredentials[],
   history: {
@@ -145,6 +146,9 @@ const tradingSlice = createSlice({
     setTradingMode: (state, action: PayloadAction<TradingMode>) => {
       state.config.mode = action.payload;
     },
+    setTestMode: (state, action: PayloadAction<boolean>) => {
+      state.config.testMode = action.payload;
+    },
     setOrderSizeType: (state, action: PayloadAction<'percentage' | 'fixed'>) => {
       state.config.orderSizeType = action.payload;
     },
@@ -268,7 +272,8 @@ export const {
   addTradeAlert, 
   updateTradeStatus, 
   clearTradeHistory, 
-  setTradingMode, 
+  setTradingMode,
+  setTestMode, 
   setOrderSizeType, 
   setOrderSizeValue, 
   setMaxPositionSize,

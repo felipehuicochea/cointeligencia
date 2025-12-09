@@ -28,8 +28,20 @@ export interface ExchangeCredentials {
   apiKey: string;
   apiSecret: string;
   passphrase?: string; // For some exchanges like Coinbase Pro
+  // Test API keys (required for some exchanges that have separate test environments)
+  testApiKey?: string;
+  testApiSecret?: string;
+  testPassphrase?: string;
   isActive: boolean;
   createdAt: string;
+}
+
+// Exchange test API requirements
+export interface ExchangeTestRequirements {
+  requiresSeparateTestKeys: boolean; // If true, exchange requires separate API keys for test mode
+  usesPublicTestAPI: boolean; // If true, exchange has a public test API that uses same keys
+  testEndpointAvailable: boolean; // If true, exchange has a test endpoint
+  notes?: string; // Additional notes about test mode for this exchange
 }
 
 export interface TradingConfig {
@@ -41,6 +53,7 @@ export interface TradingConfig {
   takeProfitPercentage: number;
   orderSizeType: 'percentage' | 'fixed';
   orderSizeValue: number; // percentage (0-100) or fixed amount in USD
+  testMode: boolean; // If true, use test/sandbox API endpoints instead of live
 }
 
 // Trade Alert Types
@@ -116,4 +129,5 @@ export type MainTabParamList = {
   Alerts: undefined;
   History: undefined;
   Settings: undefined;
+  TestApiConfig: undefined;
 };

@@ -1,8 +1,4 @@
 export const es = {
-  // Navigation
-  dashboard: 'Panel de Control',
-  settings: 'Configuración',
-  
   // Authentication
   login: {
     title: 'Cointeligencia',
@@ -83,6 +79,7 @@ export const es = {
     riskLevel: 'Nivel de Riesgo',
     
     appSettings: 'Configuración de la App',
+    appSettingsDescription: 'Configuración general de la aplicación y preferencias.',
     pushNotifications: 'Notificaciones Push',
     pushDescription: 'Recibir alertas de trading',
     soundAlerts: 'Alertas de Sonido',
@@ -96,6 +93,70 @@ export const es = {
     logout: 'Cerrar Sesión',
     logoutConfirmTitle: 'Cerrar Sesión',
     logoutConfirmMessage: '¿Estás seguro de que quieres cerrar sesión?',
+    
+    // Test Mode
+    testMode: 'Modo de Prueba',
+    testModeDescription: 'Las órdenes se enviarán a endpoints de prueba/sandbox. Seguro para probar sin fondos reales.',
+    testModeDescriptionLive: 'Las órdenes se enviarán a endpoints en vivo. Se usarán fondos reales.',
+    liveMode: 'MODO EN VIVO',
+    testModeEnabled: 'Modo de Prueba Habilitado',
+    testModeEnabledMessage: 'La app ahora usará endpoints de prueba/sandbox para todos los exchanges. Las órdenes no se ejecutarán en mercados en vivo.',
+    testModeDisabled: '¿Cambiar a Modo en Vivo?',
+    testModeDisabledMessage: 'ADVERTENCIA: La app ahora usará endpoints en vivo. Las órdenes se ejecutarán en mercados reales con fondos reales. ¿Estás seguro de que quieres continuar?',
+    liveModeEnabled: 'Modo en Vivo Habilitado',
+    liveModeEnabledMessage: 'La app ahora está usando endpoints en vivo. Todas las órdenes se ejecutarán en mercados reales.',
+    testModeWarning: '⚠️ Todas las órdenes se ejecutarán en endpoints de prueba/sandbox. No se usarán fondos reales.',
+    testModeActive: 'MODO DE PRUEBA ACTIVO',
+    testModeActiveDescription: 'Todas las órdenes se están enviando a endpoints de prueba/sandbox. No se usarán fondos reales.',
+    testModeConfigureWarning: '⚠️ Por favor configura al menos un exchange antes de habilitar el modo de prueba.',
+    configuredExchanges: 'Exchanges configurados: {exchanges}',
+    testApiKeysConfigured: '✓ Claves API de prueba configuradas',
+    testApiKeysRequired: '✗ Claves API de prueba requeridas',
+    usingSameKeysWithTestEndpoint: '✓ Usando las mismas claves con endpoint de prueba',
+    noTestEndpointAvailable: '⚠ No hay endpoint de prueba disponible',
+    
+    // Test API Keys
+    testApiKeys: 'Claves API de Prueba',
+    testApiKey: 'Clave API de Prueba',
+    testApiSecret: 'Secreto API de Prueba',
+    testPassphrase: 'Frase de Paso de Prueba (opcional)',
+    testApiKeyPlaceholder: 'Ingresa tu clave API de prueba',
+    testApiSecretPlaceholder: 'Ingresa tu secreto API de prueba',
+    testPassphrasePlaceholder: 'Requerido para algunos exchanges como Coinbase Pro',
+    testApiKeysRequiredTitle: 'Claves API de Prueba Requeridas',
+    testApiKeysRequiredMessage: '{exchange} requiere claves API de prueba separadas cuando el modo de prueba está habilitado. Por favor proporciona las claves API de prueba.',
+    testApiKeysRequiredMultiple: 'Los siguientes exchanges requieren claves API de prueba separadas:\n\n{exchanges}\n\nPor favor configura las claves API de prueba para estos exchanges antes de habilitar el modo de prueba.',
+    publicTestApiNote: '{exchange} tiene una API de prueba pública. {message}',
+    separateTestKeysRequired: 'Se requieren claves API de prueba separadas para el modo de prueba.',
+    sameKeysWithTestEndpoint: 'Las mismas claves API se usarán con el endpoint de prueba.',
+    testEndpointNeedsVerification: '⚠️ La disponibilidad del endpoint de prueba para {exchange} necesita verificación. Consulta la documentación oficial.',
+    sameKeysForTestMode: '✓ Las mismas claves API se usarán para el modo de prueba. El endpoint de prueba se usará automáticamente cuando el modo de prueba esté habilitado.',
+    
+    // Exchange Configuration
+    noExchangeConfigured: 'No Hay Exchange Configurado',
+    noExchangeConfiguredMessage: 'Por favor configura al menos un exchange con claves API válidas antes de habilitar el modo de prueba.',
+    selectExchange: 'Seleccionar exchange',
+    exchangeNotConfigured: 'Exchange No Configurado',
+    exchangeNotConfiguredMessage: 'Por favor configura las credenciales de este exchange primero antes de agregar las claves API de prueba.',
+    configured: 'Configurado',
+    testApi: 'API de Prueba',
+    testApiConfiguration: 'Configuración de API de Prueba',
+    testApiConfigurationDescription: 'Configura las credenciales de API de prueba para tus exchanges. Estas credenciales se usarán cuando el modo de prueba esté habilitado.',
+    testApiKeysSaved: 'Credenciales de API de prueba guardadas exitosamente',
+    configureMaximumPositionSize: 'Configurar tamaño máximo de posición',
+    configureStopLossPercentage: 'Configurar porcentaje de stop loss',
+    configureTakeProfitPercentage: 'Configurar porcentaje de take profit',
+    maximumPositionSizeLabel: 'Tamaño máximo de posición ($)',
+    maximumPositionSizePlaceholder: 'Ingresa el tamaño máximo de posición en USD',
+    maximumPositionSizeDescription: 'Esta es la cantidad máxima que estás dispuesto a arriesgar en una sola operación.',
+    stopLossPercentageLabel: 'Porcentaje de stop loss (%)',
+    stopLossPercentagePlaceholder: 'Ingresa el porcentaje de stop loss (0-100)',
+    stopLossPercentageDescription: 'Este porcentaje representa cuánto estás dispuesto a perder en una operación antes de cerrar automáticamente la posición.',
+    takeProfitPercentageLabel: 'Porcentaje de take profit (%)',
+    takeProfitPercentagePlaceholder: 'Ingresa el porcentaje de take profit (0-100)',
+    takeProfitPercentageDescription: 'Este porcentaje representa tu objetivo de ganancia antes de cerrar automáticamente la posición.',
+    done: 'Listo',
+    addExchangeCredentials: 'Agregar credenciales de exchange',
   },
 
   // Exchange Dialog
@@ -145,6 +206,7 @@ export const es = {
     warning: 'Advertencia',
     info: 'Información',
     unknown: 'Desconocido',
+    ok: 'OK',
   },
 
   // Trading Status

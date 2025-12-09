@@ -139,6 +139,23 @@ const DashboardScreen: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      {/* Test Mode Banner */}
+      {config.testMode && (
+        <Card style={[styles.card, styles.testModeBanner]}>
+          <Card.Content>
+            <View style={styles.testModeContainer}>
+              <Text style={styles.testModeIcon}>⚠️</Text>
+              <View style={styles.testModeTextContainer}>
+                <Text style={styles.testModeTitle}>{t('settings.testModeActive')}</Text>
+                <Text style={styles.testModeDescription}>
+                  {t('settings.testModeActiveDescription')}
+                </Text>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Trading Mode Toggle */}
       <Card style={styles.card}>
         <Card.Content>
@@ -158,22 +175,44 @@ const DashboardScreen: React.FC = () => {
               color={colors.success}
             />
           </View>
-          <Chip
-            mode="outlined"
-            style={[
-              styles.modeChip, 
-              { 
-                borderColor: config.mode === 'AUTO' ? colors.success : colors.warning,
-                backgroundColor: config.mode === 'AUTO' ? colors.success + '20' : colors.warning + '20'
-              }
-            ]}
-            textStyle={{ 
-              color: config.mode === 'AUTO' ? colors.success : colors.warning,
-              fontWeight: 'bold'
-            }}
-          >
-            {config.mode} MODE
-          </Chip>
+          <View style={styles.modeChipsContainer}>
+            <Chip
+              mode="outlined"
+              style={[
+                styles.modeChip, 
+                { 
+                  borderColor: config.mode === 'AUTO' ? colors.success : colors.warning,
+                  backgroundColor: config.mode === 'AUTO' ? colors.success + '20' : colors.warning + '20'
+                }
+              ]}
+              textStyle={{ 
+                color: config.mode === 'AUTO' ? colors.success : colors.warning,
+                fontWeight: 'bold'
+              }}
+            >
+              {config.mode} MODE
+            </Chip>
+            {config.testMode && (
+              <Chip
+                mode="outlined"
+                style={[
+                  styles.modeChip,
+                  {
+                    borderColor: colors.warning,
+                    backgroundColor: colors.warning + '20',
+                    marginLeft: 8,
+                  }
+                ]}
+                textStyle={{
+                  color: colors.warning,
+                  fontWeight: 'bold',
+                  fontSize: 10,
+                }}
+              >
+                TEST
+              </Chip>
+            )}
+          </View>
         </Card.Content>
       </Card>
 
@@ -336,6 +375,32 @@ const styles = StyleSheet.create({
     elevation: 2,
     backgroundColor: colors.card,
   },
+  testModeBanner: {
+    backgroundColor: colors.warning + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning,
+  },
+  testModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  testModeIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  testModeTextContainer: {
+    flex: 1,
+  },
+  testModeTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.warning,
+    marginBottom: 4,
+  },
+  testModeDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
   modeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -345,6 +410,11 @@ const styles = StyleSheet.create({
   modeTextContainer: {
     flex: 1,
     marginRight: 16,
+  },
+  modeChipsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
   },
   modeChip: {
     alignSelf: 'flex-start',

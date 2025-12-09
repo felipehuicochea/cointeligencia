@@ -1,0 +1,12 @@
+# Ignore everything by default
+*
+
+# But track these files
+!.gitignore
+!README.md
+!build-*.apk
+
+# Never track these even if they match the above
+.DS_Store
+*.log
+

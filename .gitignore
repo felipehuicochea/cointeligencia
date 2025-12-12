@@ -3,10 +3,24 @@
 
 # But track these files
 !.gitignore
+!.easignore
 !README.md
 !build-*.apk
+!google-services.json
+!app.json
+!package.json
+!eas.json
+!tsconfig.json
+!babel.config.js
+!App.tsx
+!index.js
+
+# Track source files
+!src/
+!assets/
 
 # Never track these even if they match the above
 .DS_Store
 *.log
+node_modules/
 

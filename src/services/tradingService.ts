@@ -747,8 +747,33 @@ class TradingService {
           'X-COINEX-TIMESTAMP': timestamp.toString(),
         };
         requestBody = orderData;
+      } else if (baseExchangeLower === 'kucoin') {
+        // KuCoin API authentication
+        const timestamp = Date.now();
+        const method = 'POST';
+        const path = new URL(endpoint).pathname;
+        const body = JSON.stringify(orderData);
+        
+        // KuCoin signature: HMAC-SHA256(timestamp + method + endpoint + body, secret) -> Base64
+        const signature = this.generateKucoinSignature(timestamp, method, path, body, exchangeCredentials.apiSecret);
+        
+        // KuCoin passphrase: HMAC-SHA256(passphrase, secret) -> Base64
+        const passphraseSignature = this.generateKucoinPassphrase(
+          exchangeCredentials.passphrase || '', 
+          exchangeCredentials.apiSecret
+        );
+        
+        headers = {
+          'Content-Type': 'application/json',
+          'KC-API-KEY': exchangeCredentials.apiKey,
+          'KC-API-SIGN': signature,
+          'KC-API-TIMESTAMP': timestamp.toString(),
+          'KC-API-PASSPHRASE': passphraseSignature,
+          'KC-API-KEY-VERSION': '2',
+        };
+        requestBody = orderData;
       } else {
-        // Standard authentication for other exchanges (Coinbase, KuCoin, MEXC, BingX)
+        // Standard authentication for other exchanges (Coinbase, MEXC, BingX)
         headers = {
           'Content-Type': 'application/json',
           'X-API-Key': exchangeCredentials.apiKey,
@@ -1398,6 +1423,31 @@ class TradingService {
           'API-Sign': signature,
         };
         requestBody = { ...cancelData, nonce };
+      } else if (baseExchangeLower === 'kucoin') {
+        // KuCoin API authentication
+        const timestamp = Date.now();
+        const method = 'DELETE';
+        const path = new URL(endpoint).pathname;
+        const body = JSON.stringify(cancelData);
+        
+        // KuCoin signature: HMAC-SHA256(timestamp + method + endpoint + body, secret) -> Base64
+        const signature = this.generateKucoinSignature(timestamp, method, path, body, credentials.apiSecret);
+        
+        // KuCoin passphrase: HMAC-SHA256(passphrase, secret) -> Base64
+        const passphraseSignature = this.generateKucoinPassphrase(
+          credentials.passphrase || '', 
+          credentials.apiSecret
+        );
+        
+        headers = {
+          'Content-Type': 'application/json',
+          'KC-API-KEY': credentials.apiKey,
+          'KC-API-SIGN': signature,
+          'KC-API-TIMESTAMP': timestamp.toString(),
+          'KC-API-PASSPHRASE': passphraseSignature,
+          'KC-API-KEY-VERSION': '2',
+        };
+        requestBody = cancelData;
       } else if (exchangeLower === 'coinex') {
         // Coinex V2 authentication
         const timestamp = Date.now();
@@ -2035,6 +2085,29 @@ class TradingService {
     } catch (error: any) {
       console.error('Kraken signature encoding failed:', error);
       throw new Error(`Kraken signature encoding failed: ${error.message || error}`);
+    }
+  }
+
+  // Generate KuCoin signature: HMAC-SHA256(timestamp + method + endpoint + body, secret) -> Base64
+  private generateKucoinSignature(timestamp: number, method: string, endpoint: string, body: string, secret: string): string {
+    try {
+      const CryptoJS = require('crypto-js');
+      const message = timestamp + method + endpoint + body;
+      return CryptoJS.HmacSHA256(message, secret).toString(CryptoJS.enc.Base64);
+    } catch (error: any) {
+      console.error('KuCoin signature generation failed:', error);
+      throw new Error(`KuCoin signature generation failed: ${error.message || error}`);
+    }
+  }
+
+  // Generate KuCoin passphrase signature: HMAC-SHA256(passphrase, secret) -> Base64
+  private generateKucoinPassphrase(passphrase: string, secret: string): string {
+    try {
+      const CryptoJS = require('crypto-js');
+      return CryptoJS.HmacSHA256(passphrase, secret).toString(CryptoJS.enc.Base64);
+    } catch (error: any) {
+      console.error('KuCoin passphrase signature generation failed:', error);
+      throw new Error(`KuCoin passphrase signature generation failed: ${error.message || error}`);
     }
   }
 

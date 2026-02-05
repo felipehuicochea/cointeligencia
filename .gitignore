@@ -15,9 +15,13 @@
 !App.tsx
 !index.js
 
-# Track source files
+# Track source files - must un-ignore directories first, then files
 !src/
+!src/**/
+!src/**/*
 !assets/
+!assets/**/
+!assets/**/*
 
 # Never track these even if they match the above
 .DS_Store

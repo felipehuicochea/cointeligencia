@@ -1,0 +1,100 @@
+name: Build and Verify
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'app.json'
+      - 'eas.json'
+  workflow_dispatch: # Allow manual triggers
+
+jobs:
+  verify-git-state:
+    name: Verify Git State
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify source code is tracked
+        run: |
+          echo "Checking if source code is tracked in git..."
+          if ! git ls-files | grep -q "^src/"; then
+            echo "ERROR: src/ directory is not tracked in git!"
+            echo "Run: git add src/ && git commit -m 'Add source code'"
+            exit 1
+          fi
+          echo "✓ Source code is tracked"
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "WARNING: Uncommitted changes detected:"
+            git status --short
+            echo ""
+            echo "Build will proceed, but ensure changes are committed!"
+          else
+            echo "✓ Working directory is clean"
+          fi
+
+      - name: Verify critical files exist
+        run: |
+          CRITICAL_FILES=(
+            "src/services/tradingService.ts"
+            "src/services/exchangeCapabilities.ts"
+            "package.json"
+            "app.json"
+          )
+          for file in "${CRITICAL_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Critical file missing: $file"
+              exit 1
+            fi
+            echo "✓ Found: $file"
+          done
+
+  build-android:
+    name: Build Android APK
+    needs: verify-git-state
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify source code in build
+        run: |
+          echo "Verifying source code files are present..."
+          if [ ! -f "src/services/tradingService.ts" ]; then
+            echo "ERROR: tradingService.ts not found in build context!"
+            exit 1
+          fi
+          echo "✓ Source code verified"
+
+      - name: Build APK (Preview)
+        run: eas build --platform android --profile preview --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build status
+        run: |
+          echo "Build submitted to EAS. Check status at: https://expo.dev/accounts/[your-account]/builds"

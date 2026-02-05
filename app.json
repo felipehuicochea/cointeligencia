@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "cointeligencia",
+    "slug": "cointeligencia-android-app",
+    "version": "2.1.0-beta",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "androidStatusBar": {
+      "backgroundColor": "#FFFFFF",
+      "barStyle": "dark-content"
+    },
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cointeligenciamobileapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "package": "com.cointeligenciamobileapp",
+      "label": "Cointeligencia"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "owner": "cointeligencia",
+    "plugins": [
+      "expo-secure-store",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cbc62bfa-7ccd-47b4-bab2-6c53180a9514"
+      }
+    }
+  }
+}

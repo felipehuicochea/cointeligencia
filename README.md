@@ -1,23 +1,56 @@
 # Cointeligencia Android App
 
-Trading alert system mobile application with automated trading capabilities.
+React Native mobile application for trading alerts and automated trading capabilities.
+
+**Development is local only.** Do not push source code to GitHub. GitHub is used only for APK releases (upload APKs via [Releases](https://github.com/felipehuicochea/cointeligencia/releases)).
 
 ---
 
-**Development is local only.** This repository is used **only for APK releases**. Source code is not published here. Download the app via the latest release below.
+## Quick Start (Local)
+
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+- Expo CLI
+- EAS CLI (for builds)
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
+
+```bash
+npm start
+```
+
+### Building
+
+See [BUILD_WORKFLOW.md](./BUILD_WORKFLOW.md) for the full workflow.
+
+**Before building:**
+```bash
+./scripts/pre-build-check.sh
+```
+
+**Build Android APK (local):**
+```bash
+eas build --platform android --profile preview --local
+```
 
 ---
 
-## Releases
+## Releasing an APK
 
-Download the latest APK from the [Releases](https://github.com/felipehuicochea/cointeligencia/releases) page.
+1. Build the APK locally (see above).
+2. Go to [GitHub Releases](https://github.com/felipehuicochea/cointeligencia/releases).
+3. Create a new release and upload the built APK.
 
-### Install on Android
-
-1. Download the latest APK from [Releases](https://github.com/felipehuicochea/cointeligencia/releases)
-2. Enable **Install from Unknown Sources** for your browser or file manager (in Android Settings)
-3. Open the downloaded APK and install
+---
 
 ## About
 
-Cointeligencia provides real-time trading alerts and automated trading capabilities. All development and builds are done locally; this repo is for distribution only.
+Cointeligencia is a trading alert system with real-time alerts and automated trading. All development and builds are done in this local directory.

@@ -1,5 +1,35 @@
-# GitHub repo is for APK releases only. No source code.
-# Upload APK files via GitHub Releases: https://github.com/felipehuicochea/cointeligencia/releases
+# Ignore everything by default
 *
+
+# But track these files
 !.gitignore
+!.easignore
 !README.md
+!build-*.apk
+!google-services.json
+!app.json
+!package.json
+!eas.json
+!tsconfig.json
+!babel.config.js
+!App.tsx
+!index.js
+
+# Track source files - must un-ignore directories first, then files
+!src/
+!src/**/
+!src/**/*
+!assets/
+!assets/**/
+!assets/**/*
+!.github/
+!.github/**/*
+!scripts/
+!scripts/**/*
+!BUILD_WORKFLOW.md
+
+# Never track these even if they match the above
+.DS_Store
+*.log
+node_modules/
+

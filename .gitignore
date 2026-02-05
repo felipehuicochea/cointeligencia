@@ -22,6 +22,11 @@
 !assets/
 !assets/**/
 !assets/**/*
+!.github/
+!.github/**/*
+!scripts/
+!scripts/**/*
+!BUILD_WORKFLOW.md
 
 # Never track these even if they match the above
 .DS_Store

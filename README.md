@@ -1,10 +1,47 @@
 # Cointeligencia Android App
 
+React Native mobile application for trading alerts and automated trading capabilities.
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+- Expo CLI
+- EAS CLI (for builds)
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
+
+```bash
+npm start
+```
+
+### Building
+
+**Important:** See [BUILD_WORKFLOW.md](./BUILD_WORKFLOW.md) for proper build workflow to ensure fixes persist.
+
+**Before building, always run pre-build checks:**
+```bash
+npm run pre-build-check
+```
+
+**Build Android APK:**
+```bash
+# Cloud build (recommended - uses git)
+npm run build:android
+
+# Local build (for testing)
+npm run build:android:local
+```
+
 ## Releases
-
-This repository contains release builds of the Cointeligencia Android mobile application.
-
-### Latest Release
 
 Check the [Releases](https://github.com/felipehuicochea/cointeligencia/releases) page for the latest APK download.
 
@@ -14,14 +51,19 @@ Check the [Releases](https://github.com/felipehuicochea/cointeligencia/releases)
 2. Enable "Install from Unknown Sources" on your Android device
 3. Install the APK file
 
-### Reporting Issues
+## Build Workflow
+
+**⚠️ IMPORTANT:** To ensure bug fixes persist in builds, follow the workflow in [BUILD_WORKFLOW.md](./BUILD_WORKFLOW.md).
+
+Key points:
+- Always commit fixes to git before building
+- Use cloud builds for production (they pull from git)
+- Run `npm run pre-build-check` before local builds
+
+## Reporting Issues
 
 If you encounter any issues or bugs, please report them in the [Issues](https://github.com/felipehuicochea/cointeligencia/issues) section.
 
-### About
+## About
 
 Cointeligencia is a trading alert system mobile application that provides real-time trading alerts and automated trading capabilities.
-
----
-
-**Note:** Source code is not available in this repository. This repository is for release distribution and issue tracking only.

@@ -1,69 +1,23 @@
 # Cointeligencia Android App
 
-React Native mobile application for trading alerts and automated trading capabilities.
+Trading alert system mobile application with automated trading capabilities.
 
-## Quick Start
+---
 
-### Prerequisites
+**Development is local only.** This repository is used **only for APK releases**. Source code is not published here. Download the app via the latest release below.
 
-- Node.js 20+
-- npm or yarn
-- Expo CLI
-- EAS CLI (for builds)
-
-### Installation
-
-```bash
-npm install
-```
-
-### Development
-
-```bash
-npm start
-```
-
-### Building
-
-**Important:** See [BUILD_WORKFLOW.md](./BUILD_WORKFLOW.md) for proper build workflow to ensure fixes persist.
-
-**Before building, always run pre-build checks:**
-```bash
-npm run pre-build-check
-```
-
-**Build Android APK:**
-```bash
-# Cloud build (recommended - uses git)
-npm run build:android
-
-# Local build (for testing)
-npm run build:android:local
-```
+---
 
 ## Releases
 
-Check the [Releases](https://github.com/felipehuicochea/cointeligencia/releases) page for the latest APK download.
+Download the latest APK from the [Releases](https://github.com/felipehuicochea/cointeligencia/releases) page.
 
-### Installation
+### Install on Android
 
-1. Download the latest APK from the [Releases](https://github.com/felipehuicochea/cointeligencia/releases) page
-2. Enable "Install from Unknown Sources" on your Android device
-3. Install the APK file
-
-## Build Workflow
-
-**⚠️ IMPORTANT:** To ensure bug fixes persist in builds, follow the workflow in [BUILD_WORKFLOW.md](./BUILD_WORKFLOW.md).
-
-Key points:
-- Always commit fixes to git before building
-- Use cloud builds for production (they pull from git)
-- Run `npm run pre-build-check` before local builds
-
-## Reporting Issues
-
-If you encounter any issues or bugs, please report them in the [Issues](https://github.com/felipehuicochea/cointeligencia/issues) section.
+1. Download the latest APK from [Releases](https://github.com/felipehuicochea/cointeligencia/releases)
+2. Enable **Install from Unknown Sources** for your browser or file manager (in Android Settings)
+3. Open the downloaded APK and install
 
 ## About
 
-Cointeligencia is a trading alert system mobile application that provides real-time trading alerts and automated trading capabilities.
+Cointeligencia provides real-time trading alerts and automated trading capabilities. All development and builds are done locally; this repo is for distribution only.

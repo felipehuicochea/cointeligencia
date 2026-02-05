@@ -20,40 +20,18 @@ Previously, fixes were made locally but:
    git add src/
    git commit -m "Fix: Description of the fix"
    ```
-4. **Push to GitHub**:
-   ```bash
-   git push origin master
-   ```
-5. **Build from committed code**:
-   - **Cloud builds** (recommended): Automatically pull from git
-   - **Local builds**: Ensure you're on the latest commit first
+4. **Build locally** (do not push source to GitHub).
+5. **Publish APK** by uploading the built APK to GitHub Releases when ready.
 
 ### ❌ What NOT to Do
 
-- ❌ Don't build without committing changes
-- ❌ Don't skip pushing to GitHub
+- ❌ Don't push source code to GitHub (repo is for APK releases only)
+- ❌ Don't build without committing changes locally
 - ❌ Don't build from uncommitted local files (unless testing)
 
-## Build Methods
+## Build Methods (Local Only)
 
-### Method 1: Cloud Build (Recommended)
-
-Cloud builds automatically pull from git, ensuring fixes are included:
-
-```bash
-# Make sure you're on latest commit
-git pull origin master
-
-# Build on EAS cloud
-eas build --platform android --profile preview
-```
-
-**Advantages:**
-- ✅ Always uses committed code from git
-- ✅ Consistent builds across team members
-- ✅ No local environment issues
-
-### Method 2: Local Build (For Testing)
+### Local build
 
 If building locally, **always run pre-build checks first**:
 
@@ -81,26 +59,14 @@ chmod +x scripts/pre-build-check.sh
 ./scripts/pre-build-check.sh
 ```
 
-## GitHub Actions (Automated)
-
-We've set up GitHub Actions workflow (`.github/workflows/build.yml`) that:
-- ✅ Automatically verifies git state on push
-- ✅ Ensures source code is tracked
-- ✅ Triggers builds when source code changes
-
-**Setup required:**
-1. Add `EXPO_TOKEN` secret to GitHub repository settings
-2. Workflow will run automatically on pushes to `master`
-
 ## Checklist Before Building
 
 Before creating a build, verify:
 
 - [ ] Fix is implemented and tested locally
-- [ ] All changes are committed: `git status` shows clean
-- [ ] Changes are pushed to GitHub: `git push origin master`
+- [ ] All changes are committed locally: `git status` shows clean
 - [ ] Pre-build check passes: `./scripts/pre-build-check.sh`
-- [ ] Build is done from git (cloud) or verified local state (local)
+- [ ] Build is done from your local directory (no GitHub push of source)
 
 ## Verifying Builds Include Fixes
 
@@ -134,18 +100,16 @@ git ls-files | grep src/
 
 **Check:**
 1. Are changes committed? `git status`
-2. Are changes pushed? `git log origin/master`
-3. Is build pulling from git? (cloud builds do automatically)
+2. Did you build from this directory? (local builds use local files)
 
 ## Best Practices
 
-1. **Always commit fixes** before building
-2. **Use cloud builds** for production/release builds
-3. **Run pre-build checks** before local builds
-4. **Tag releases** in git for traceability
-5. **Document fixes** in commit messages
+1. **Always commit fixes** before building (local git only)
+2. **Run pre-build checks** before local builds
+3. **Tag or note commits** when releasing an APK for traceability
+4. **Upload APK to GitHub Releases** when you want to distribute
 
-## Example: Fixing a Bug
+## Example: Fixing a Bug and Releasing
 
 ```bash
 # 1. Make the fix
@@ -154,23 +118,18 @@ vim src/services/tradingService.ts
 # 2. Test locally
 npm start
 
-# 3. Commit the fix
+# 3. Commit locally (do not push source)
 git add src/services/tradingService.ts
-git commit -m "Fix: USDT→USDC conversion for Binance EU"
+git commit -m "Fix: description"
 
-# 4. Push to GitHub
-git push origin master
-
-# 5. Verify pre-build checks
+# 4. Pre-build check and build
 ./scripts/pre-build-check.sh
-
-# 6. Build (cloud - recommended)
-eas build --platform android --profile preview
-
-# OR build locally (for testing)
 eas build --platform android --profile preview --local
+
+# 5. Upload the built APK to GitHub Releases (manual)
+#    https://github.com/felipehuicochea/cointeligencia/releases
 ```
 
 ---
 
-**Remember:** If it's not in git, it won't be in the build (for cloud builds or fresh clones).
+**Remember:** Development is local. GitHub is used only for APK releases.

@@ -1,0 +1,5 @@
+# GitHub repo is for APK releases only. No source code.
+# Upload APK files via GitHub Releases: https://github.com/felipehuicochea/cointeligencia/releases
+*
+!.gitignore
+!README.md
